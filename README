@@ -1,0 +1,72 @@
+AutomatedTorrentFeeds
+
+Having several common torrent streams that I like to download, I had started using a RSS reader to keep
+track of when new torrents came out. The release schedual is sporadic enough that it was a bit of a pain
+to add the torent manually from the feeds and then manage the files afterwards. Since I was doing seasonal
+episodes, and each feed was for a single season of a show, it was the perfect type of thing to automate.
+
+
+Runtime Dependencies
+
+= Gentoo =
+ py-xmlrpc
+ feedparser
+
+
+Special Params
+processing_steps - the steps that are taken for each torrent (see below)
+        - This does have a sane default of
+	   - add the torrent
+	   - wait for it to finish
+	   - download the files to %download_destination%
+	   - do the post-processing steps
+post_processing_steps - the normal place for a user to do something special with the torrents
+download_destination - a folder that you want the default processing_steps to put the torrent files
+
+
+Special Sectional Params
+  These params are used for certain things in different sections
+=====Global
+server_url - we need to connect to rTorrent somewhere
+credentials_type - can be one of (plain,netrc,none)
+credentials - optional - specify this as Username:Password if you choose plain credentials type
+
+=====Group
+group_name - some name to use later for different feeds
+
+=====RSSFeed
+feed_url - the url to grab new entries from
+group_name - optional - the name of a group to inherit things from
+
+
+
+
+Available Processing Steps:
+
+add_torrent(string) - will add a torrent url to rTorrent and have it start downloading
+delete_torrent() - will delete the current torrent
+set_label(string) - set the current torrent's label to "string" (visable in ruTorrent)
+wait_for_torrent_downloaded() - will let the program rest for a short bit and periodicly checks to see if
+        the torrent has finished downloading
+wait_for_ratio(int) - will let the program rest for a short bit and periodically check if the torrent
+        has an upload ratio equal or grater than the given number
+
+increment_var(string) - add 1 to a variable named "string" in the current torrent
+increment_feed_var(string) - add 1 to a variable named "string" for the feed the current torrent came from
+increment_group_var(string) - add 1 to a variable named "string" for the group the current torrent came from
+
+download_files(string) - downloads all the files in the torrent to the location specified in "string"
+        - special behavior for single file torrents - the single file will be given the name in "string"
+	  instead of being put in a folder of that name
+download_files_folder(string) - downloads all torrent files into a folder named "string"
+        - unlike the above processing, this will always put things in a folder, nothing special
+
+post_processing_steps()
+
+
+
+Style Guide - For Coders Only
+For processing_steps functionality, wait_*() functions always will let the program do other processing
+    instead of directly continuing that processing chain (eg let other RSS parsing happen when waiting)
+Variables are referenced in strings with %str% and special modifications to value substitutions is done
+    with :mod():mod2() after the variable name
