@@ -6,6 +6,10 @@ It returns 3 objects - default settings, group settings, feed settings
 
 import netrc
 
+#=================================================================
+#  Post Parsing Functions
+#=================================================================
+
 def group_vars_sanity_check(section_vars,groups):
     if not "group_name" in section_vars:
         print("Error: Group #{} does not have group_name specified".format(len(groups)) )
@@ -153,6 +157,29 @@ def settings_final_sanity_check(defaults,groups,feeds):
 
     if error_found == True:
         exit(-1)
+
+#=================================================================
+#  Settings File Save Functions
+#=================================================================
+
+def save_settings_to_file(sett,defaults,groups,feeds):
+    print("Saving Settings to File...")
+    for key in defaults:
+        if key == "credentials" and "credentials_type" in defaults and defaults["credentials_type"] == "netrc": continue
+        sett.write("{} : {}\n".format(key,defaults[key]) )
+    sett.write("\n")
+    for group_name in groups:
+        sett.write("=====Group\n")
+        group = groups[group_name]
+        for key in group:
+            sett.write("{} : {}\n".format(key,group[key]) )
+        sett.write("\n")
+    for feed_url in feeds:
+        sett.write("=====RSSFeed\n")
+        feed = feeds[feed_url]
+        for key in feed:
+            sett.write("{} : {}\n".format(key,feed[key]) )
+        sett.write("\n")
 
 #=================================================================
 #  Debug Functions

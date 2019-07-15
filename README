@@ -37,7 +37,8 @@ group_name - some name to use later for different feeds
 =====RSSFeed
 feed_url - the url to grab new entries from
 group_name - optional - the name of a group to inherit things from
-
+last_seen_link - automatically generated field to know what links are new
+last_seen_link_date - automatically generated field to help servers only send new entries
 
 
 
@@ -61,7 +62,10 @@ download_files(string) - downloads all the files in the torrent to the location 
 download_files_folder(string) - downloads all torrent files into a folder named "string"
         - unlike the above processing, this will always put things in a folder, nothing special
 
-post_processing_steps()
+post_processing_steps() - runs the processing steps that are in the post_processing_steps() variable
+processing_steps_variable(string) - runs the processing steps that are in varaibale name given
+
+delete_feed() - deletes the feed that the torrent came from
 
 
 

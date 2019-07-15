@@ -38,34 +38,22 @@ State Implementation - Some sort of configurable state machine?
        - That way these steps are just part of the default config so it is a single system to maintain
        - processing_steps : wait_for_torrent_downloaded() set_label(%label_finished%) download_files() post_processing()
           - allow arbitrary values to be used from the RSS config into the processing steps with the %% encoding
-
-Extra Features?
-have countdown thingy or file_count thing so it auto-removes RSS feeds after x number torrents?
-have expire date that removes an RSS feed
-
-General Structure of program
-Single script, multi threads for different flows above
-Script runs as a daemon, so really only need to write out to the files when shutting down
- - need to support a 'reload' option one day
- - this means no cron job
-Configs
- - global default
- - global user override
- - RSS feed with overrides (Flow 1 only)
- - Watched Torrents with overrides (Flow 2 only)
 """
 
 default_settings = {} #just a list of vars:values
 feed_groups = {}      #2D dictionary with group_name as the key to get the group
 feeds = {}            #2D dictionary with the feed_url as the key to get the feed
 
-from settings import parse_settings_file,settings_final_sanity_check
+from settings import parse_settings_file,settings_final_sanity_check,save_settings_to_file
 from settings import debug_print_settings_structs
-import feedparser
+from feeds import check_for_new_links
+from torrents import add_torrent_to_rtorrent
+from torrents import print_torrent_name_from_infohash
 
 #start with parsing our settings that we need
 sett = open("rss_feed.conf")
 default_settings,feed_groups,feeds = parse_settings_file(sett)
+sett.close()
 #TODO- Smooth way to parse a second file and combine the settings
 
 #After all config files are parsed, we need to do sanity checking
@@ -74,16 +62,21 @@ settings_final_sanity_check(default_settings,feed_groups,feeds)
 #Now we have sane settings, so lets update our RSS feeds
 for feed_url in feeds:
     feed_sett = feeds[feed_url]
-    feed = feedparser.parse(feed_url)
-    for entry in feed.entries:
-        print(entry["title"])
-        print(entry["link"])
-        print()
+    links = check_for_new_links(feed_sett)
+    if len(links) == 0 : continue
 
+    feed_sett["last_seen_link"] = links[-1]["link"]
+    feed_sett["last_seen_link_date"] = links[-1]["published"]
+    print("Found {} new links for {}".format(len(links),feed_url) )
 
-
-
-
+    #infohashs = add_torrents_to_rtorrent(default_settings,[link["link"] for link in links])
+    for link in links:
+        infohash = add_torrent_to_rtorrent(default_settings,link["link"])
+        print(infohash)
+        print_torrent_name_from_infohash(infohash)
 
 
 #debug_print_settings_structs(default_settings,feed_groups,feeds)
+sett = open("rss_feed.conf","w")
+save_settings_to_file(sett,default_settings,feed_groups,feeds)
+sett.close()

@@ -1,0 +1,24 @@
+This feed example is a single entry from Nyaa
+
+{'title': '[HorribleSubs] One Punch Man S2 - 01 [1080p].mkv', 'title_detail': {'type': 'text/plain', 'language': None, 'base': 'https://nyaa.si/?page=rss&q=one+punch+man+S2+[1080p]+[HorribleSubs]', 'value': '[HorribleSubs] One Punch Man S2 - 01 [1080p].mkv'}, 'links': [{'rel': 'alternate', 'type': 'text/html', 'href': 'https://nyaa.si/download/1134030.torrent'}], 'link': 'https://nyaa.si/download/1134030.torrent', 'id': 'https://nyaa.si/view/1134030', 'guidislink': False, 'published': 'Tue, 09 Apr 2019 18:36:03 -0000', 'published_parsed': time.struct_time(tm_year=2019, tm_mon=4, tm_mday=9, tm_hour=18, tm_min=36, tm_sec=3, tm_wday=1, tm_yday=99, tm_isdst=0), 'nyaa_seeders': '577', 'nyaa_leechers': '8', 'nyaa_downloads': '73328', 'nyaa_infohash': '6959d8ee6d9e418462f5cb0934feafd157804dbe', 'nyaa_categoryid': '1_2', 'nyaa_category': 'Anime - English-translated', 'nyaa_size': '803.3 MiB', 'nyaa_comments': '48', 'summary': '<a href="https://nyaa.si/view/1134030">#1134030 | [HorribleSubs] One Punch Man S2 - 01 [1080p].mkv</a> | 803.3 MiB | Anime - English-translated | 6959d8ee6d9e418462f5cb0934feafd157804dbe', 'summary_detail': {'type': 'text/html', 'language': None, 'base': 'https://nyaa.si/?page=rss&q=one+punch+man+S2+[1080p]+[HorribleSubs]', 'value': '<a href="https://nyaa.si/view/1134030">#1134030 | [HorribleSubs] One Punch Man S2 - 01 [1080p].mkv</a> | 803.3 MiB | Anime - English-translated | 6959d8ee6d9e418462f5cb0934feafd157804dbe'}}
+
+Available field names
+title - string
+title_detail - json object
+links - array of json objects
+link - string that is a URI
+id - string that is a link to the webpage
+guidislink - boolean (True / False)
+published - string that is a timestamp of the torrent being added
+published_parsed - some javascript code of somesort
+summary - string - some other fields appended together
+summary_detail - json object
+
+nyaa_seeders - int
+nyaa_leechers - int
+nyaa_downloads - int - number of completed downloads
+nyaa_infohash - string
+nyaa_categoryid - string - in form of major_minor
+nyaa_category - string - name of category id above
+nyaa_size - string - size of all files in torrent
+nyaa_comments - int
