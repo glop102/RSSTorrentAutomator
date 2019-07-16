@@ -38,7 +38,15 @@ group_name - some name to use later for different feeds
 feed_url - the url to grab new entries from
 group_name - optional - the name of a group to inherit things from
 last_seen_link - automatically generated field to know what links are new
+               - you can add this field if you know what torrent you want to start from
 last_seen_link_date - automatically generated field to help servers only send new entries
+
+=====Torrent
+current_processing_step - automatically generated field to track what processing step the torrent is on
+feed_url - what feed generated this torrent - auto-generated
+link - the link to the torrent grabbed from the feed - auto-generated
+title - the title given for the torrent link in the feed - auto-generated
+published - string date of when the torrent was added to the feed - auto-generated
 
 
 
@@ -47,10 +55,11 @@ Available Processing Steps:
 add_torrent(string) - will add a torrent url to rTorrent and have it start downloading
 delete_torrent() - will delete the current torrent
 set_label(string) - set the current torrent's label to "string" (visable in ruTorrent)
-wait_for_torrent_downloaded() - will let the program rest for a short bit and periodicly checks to see if
-        the torrent has finished downloading
-wait_for_ratio(int) - will let the program rest for a short bit and periodically check if the torrent
-        has an upload ratio equal or grater than the given number
+wait_for_torrent_complete() - periodicly checks to see if the torrent has finished downloading into rTorrent
+wait_for_ratio(int) - periodically check if the torrent has an upload ratio equal or grater than the given number
+stop_tracking_if_torrent_removed() - if the torrent is removed from rTorrent, then remove the tracking
+        conf from this program, but otherwise does nothing
+stop_tracking_torrent() - simply remove the torrent conf from this program without stopping or deleting the torrent
 
 increment_var(string) - add 1 to a variable named "string" in the current torrent
 increment_feed_var(string) - add 1 to a variable named "string" for the feed the current torrent came from

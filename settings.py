@@ -20,6 +20,9 @@ def group_vars_sanity_check(section_vars,groups):
     if name in groups:
         print("Error: Group name {} was already defined".format(name))
         exit(-1)
+    if "current_processing_step" in section_vars:
+        print("Error: current_processing_step only allowed in the torrents conf file")
+        exit(-1)
 
 def feed_vars_sanity_check(section_vars,feeds):
     if not "feed_url" in section_vars:
@@ -27,9 +30,12 @@ def feed_vars_sanity_check(section_vars,feeds):
         exit(-1)
     name = section_vars["feed_url"]
     #it does not make sense to have 2 groups of the same name
-    #nor to specify the values of a group in two places
+    #nor to specify the values of a feed in two places
     if name in feeds:
         print("Error: Feed URL {} was already defined".format(name))
+        exit(-1)
+    if "current_processing_step" in section_vars:
+        print("Error: current_processing_step only allowed in the torrents conf file")
         exit(-1)
 
 def parse_section(section_body):
@@ -53,14 +59,21 @@ def parse_section(section_body):
         var_dict[var_name] = var_value
     return var_dict
 
-def parse_settings_file(sett):
-    """sett - input - an open file object"""
-
+def parse_sections_from_file(sett):
+    """
+    sett - an already open file object
+    returns the sections as an array of dicts with arrays
+    [ { "section_name" : "",
+        "section_body" : []
+    } ]
+    """
+    #Start with a blank section that we can add globals into
     sections = [{"section_name":"","section_body":[]}]
 
     for line in sett:
         #first check if the line is a section header
         if line[:5] == "=====":
+            #New Header, New Section
             sections.append({
                 "section_name":line[5:].strip(),
                 "section_body":[]
@@ -74,6 +87,16 @@ def parse_settings_file(sett):
 
         #The line has been cleaned so is ready to be added
         sections[-1]["section_body"].append(line)
+
+    return sections
+
+def parse_settings_file(sett):
+    """
+    sett - input - an open file object
+    returns a 3 item tuple of (defaults, groups, feeds)
+    """
+
+    sections = parse_sections_from_file(sett)
 
     #The sections have now been seperated by detecting the "=====" at the start of lines
     #The lines inbetween these section markers have bee wrapped together into an array
@@ -107,8 +130,19 @@ def parse_settings_file(sett):
 
     return defaults,groups,feeds
 
+def parse_torrents_status_file(sett):
+    """sett - input - an already open file object. Returns an array of torrent objects"""
+    sections = parse_sections_from_file(sett)
+    torrents = []
+    for section in sections:
+        section_vars = parse_section(section["section_body"])
+        if section["section_name"] == "": #basicly just to skip the blank first section
+            continue
+        torrents.append(section_vars)
+    return torrents
+
 #=================================================================
-#  Post Parsing Functions
+#  Settings Post Parsing Functions
 #=================================================================
 
 def parse_hostname_from_url(url):
@@ -146,14 +180,29 @@ def settings_final_sanity_check(defaults,groups,feeds):
     if not "credentials_type" in defaults:
         error_found=True
         print("Error: credentials_type is not specified")
-    elif defaults['credentials_type'] == 'plain' and not 'credentials' in defaults:
+    elif defaults['credentials_type'].lower() == 'plain' and not 'credentials' in defaults:
         error_found=True
         print("Error: credentials is not specified when credentials_type is plain")
-    elif defaults['credentials_type'] == 'netrc':
+    elif defaults['credentials_type'].lower() == 'netrc':
         defaults['credentials'] = parse_login_credentials_netrc(defaults['server_url'])
-    elif defaults['credentials_type'] == 'none':
+    elif defaults['credentials_type'].lower() == 'none':
         #Either there really is no credential checking, or they put it in the URL
         pass
+
+    if "current_processing_step" in defaults:
+        print("Error: current_processing_step only allowed in the torrents conf file")
+        error_found = True
+
+    if not "processing_steps" in defaults:
+        #No user defualt so we will give our sane default
+        defaults["processing_steps"] = "add_torrent(%link%) wait_for_torrent_downloaded() set_label(downloaded) download_files() post_processing_steps()"
+    if not "post_processing_steps" in defaults:
+        defaults["post_processing_steps"] = "stop_tracking_if_torrent_removed()"
+
+    for feed in feeds:
+        if "group_name" in feed and not feed["group_name"] in groups:
+            print("Error: Unable to find requested group "+feed["group_name"])
+            error_found = True
 
     if error_found == True:
         exit(-1)
@@ -179,6 +228,13 @@ def save_settings_to_file(sett,defaults,groups,feeds):
         feed = feeds[feed_url]
         for key in feed:
             sett.write("{} : {}\n".format(key,feed[key]) )
+        sett.write("\n")
+def save_torrents_to_file(sett,torrents):
+    print("Saving torrent status to file...")
+    for tor in torrents:
+        sett.write("=====Torrent\n")
+        for key in tor:
+            sett.write("{} : {}\n".format(key,tor[key]) )
         sett.write("\n")
 
 #=================================================================

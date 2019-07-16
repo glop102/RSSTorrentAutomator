@@ -13,6 +13,7 @@ def check_for_new_links(feed):
         parsed_entry["title"] = entry["title"]
         parsed_entry["link"] = entry["link"]
         parsed_entry["published"] = entry["published"]
+        parsed_entry["feed_url"] = feed_url
         entries.append(parsed_entry)
 
     #check for new entries since the last known entry

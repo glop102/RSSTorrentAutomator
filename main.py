@@ -25,58 +25,82 @@ get the show name and destination folder from the tracked torents file
 if state == downloaded_remote
   if num_files = 1 - download and name file
   else download files into folder of name
-State Implementation - Some sort of configurable state machine?
- - How do we let the user expand/customize the behavior?
-    - Base behavior of just wait for it to finish, and then download all the files
-    - I want the 'delete torrent after hitting X ratio' to be user added behavior
-       - would be really 'wait for X ratio' and then 'delete torrent' - aka 2 different new states
-    - Probably only predefined available extra bits, but they can add post-processing steps
-       - post_processing_steps : wait_for_ratio(5.0) delete_torrent()
-       - post_processing_steps : delete_torrent() call_user_script(filename.sh)
-          - should we deny allowing anything to happen after the delete_torrent() step?
-    - Instead of just post_processing, allow them to override the steps of normal processing
-       - That way these steps are just part of the default config so it is a single system to maintain
-       - processing_steps : wait_for_torrent_downloaded() set_label(%label_finished%) download_files() post_processing()
-          - allow arbitrary values to be used from the RSS config into the processing steps with the %% encoding
 """
 
-default_settings = {} #just a list of vars:values
-feed_groups = {}      #2D dictionary with group_name as the key to get the group
-feeds = {}            #2D dictionary with the feed_url as the key to get the feed
-
-from settings import parse_settings_file,settings_final_sanity_check,save_settings_to_file
+from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
+from settings import parse_torrents_status_file, save_torrents_to_file
 from settings import debug_print_settings_structs
 from feeds import check_for_new_links
-from torrents import add_torrent_to_rtorrent
-from torrents import print_torrent_name_from_infohash
+from torrents import expand_new_torrent_object
+from torrents import debug_print_torrent_name_from_infohash, debug_print_torrents
 
-#start with parsing our settings that we need
-sett = open("rss_feed.conf")
-default_settings,feed_groups,feeds = parse_settings_file(sett)
-sett.close()
-#TODO- Smooth way to parse a second file and combine the settings
+def main():
+    defaults = {} #just a list of vars:values
+    groups = {}   #2D dictionary with group_name as the key to get the group
+    feeds = {}    #2D dictionary with the feed_url as the key to get the feed
+    try:
+        #start with parsing our settings that we need
+        sett = open("rss_feed.conf","r")
+        defaults,groups,feeds = parse_settings_file(sett)
+        sett.close()
+        #After all config files are parsed, we need to do sanity checking
+        settings_final_sanity_check(defaults,groups,feeds)
+    except:
+        print("Error: unable to open rss_feed.conf")
+        exit(-1)
 
-#After all config files are parsed, we need to do sanity checking
-settings_final_sanity_check(default_settings,feed_groups,feeds)
+    torrents = [] #an array of dictionaries
+    try:
+        sett = open("current_torrents.conf","r")
+        torrents = parse_torrents_status_file(sett)
+        sett.close()
+    except:
+        print("Unable to open current_torrents.conf - likely no torrents being watched right now")
 
-#Now we have sane settings, so lets update our RSS feeds
-for feed_url in feeds:
-    feed_sett = feeds[feed_url]
-    links = check_for_new_links(feed_sett)
-    if len(links) == 0 : continue
+    #Now we have sane settings, so lets update our RSS feeds
+    for feed_url in feeds:
+        feed = feeds[feed_url]
+        links = check_for_new_links(feed)
+        if len(links) == 0 : continue
 
-    feed_sett["last_seen_link"] = links[-1]["link"]
-    feed_sett["last_seen_link_date"] = links[-1]["published"]
-    print("Found {} new links for {}".format(len(links),feed_url) )
+        #Update the last entry information so we only grab newer entries
+        feed["last_seen_link"] = links[-1]["link"]
+        feed["last_seen_link_date"] = links[-1]["published"]
+        print("Found {} new links for {}".format(len(links),feed_url) )
 
-    #infohashs = add_torrents_to_rtorrent(default_settings,[link["link"] for link in links])
-    for link in links:
-        infohash = add_torrent_to_rtorrent(default_settings,link["link"])
-        print(infohash)
-        print_torrent_name_from_infohash(infohash)
+        #Add the new links onto the pile for us to process
+        torrents.extend(links)
+
+    #Now that we have checked all our feeds, lets tend to our torrents
+    #This includes starting the newly added torrents from the feeds
+    #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
+    for torrent in torrents:
+        #Lets check if this torrent is new, and expand variables from the parrent sections
+        if not "current_processing_step" in torrent:
+            feed=feeds[ torrent["feed_url"] ]
+            group={"group_name":"DummyGroup"}
+            if "group_name" in feed:
+                group = groups[feed["group_name"]]
+            expand_new_torrent_object(defaults,group,feed,torrent)
+
+        #Now lets run the processing steps on the torrent
+        #do_processing_steps(torrent)
+        pass
+    debug_print_torrents(torrents)
 
 
-#debug_print_settings_structs(default_settings,feed_groups,feeds)
-sett = open("rss_feed.conf","w")
-save_settings_to_file(sett,default_settings,feed_groups,feeds)
-sett.close()
+    #debug_print_settings_structs(defaults,groups,feeds)
+    #sett = open("rss_feed.conf","w")
+    #save_settings_to_file(sett,defaults,groups,feeds)
+    #sett.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
