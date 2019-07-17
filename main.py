@@ -29,12 +29,13 @@ if state == downloaded_remote
 
 from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
 from settings import parse_torrents_status_file, save_torrents_to_file
-from settings import debug_print_settings_structs
 from feeds import check_for_new_links
-from torrents import expand_new_torrent_object
+from torrents import expand_new_torrent_object,process_torrent
+
+from settings import debug_print_settings_structs
 from torrents import debug_print_torrent_name_from_infohash, debug_print_torrents
 
-def main():
+def parse_configurations():
     defaults = {} #just a list of vars:values
     groups = {}   #2D dictionary with group_name as the key to get the group
     feeds = {}    #2D dictionary with the feed_url as the key to get the feed
@@ -57,7 +58,9 @@ def main():
     except:
         print("Unable to open current_torrents.conf - likely no torrents being watched right now")
 
-    #Now we have sane settings, so lets update our RSS feeds
+    return defaults,groups,feeds,torrents
+
+def update_feeds(defaults,groups,feeds,torrents):
     for feed_url in feeds:
         feed = feeds[feed_url]
         links = check_for_new_links(feed)
@@ -71,28 +74,44 @@ def main():
         #Add the new links onto the pile for us to process
         torrents.extend(links)
 
-    #Now that we have checked all our feeds, lets tend to our torrents
-    #This includes starting the newly added torrents from the feeds
+def update_torrents(defaults,groups,feeds,torrents):
     #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
     for torrent in torrents:
+        group={"group_name":"DummyGroup"}
+        feed=feeds[ torrent["feed_url"] ]
+        if "group_name" in feed:
+            group = groups[feed["group_name"]]
+
         #Lets check if this torrent is new, and expand variables from the parrent sections
         if not "current_processing_step" in torrent:
-            feed=feeds[ torrent["feed_url"] ]
-            group={"group_name":"DummyGroup"}
-            if "group_name" in feed:
-                group = groups[feed["group_name"]]
             expand_new_torrent_object(defaults,group,feed,torrent)
 
         #Now lets run the processing steps on the torrent
-        #do_processing_steps(torrent)
-        pass
-    debug_print_torrents(torrents)
+        process_torrent(defaults,group,feed,torrent)
+        print("processed torrent")
 
+def save_configurations(defaults,groups,feeds,torrents):
+    sett = open("rss_feed.conf","w")
+    save_settings_to_file(sett,defaults,groups,feeds)
+    sett.close()
 
+    sett = open("current_torrents.conf","w")
+    save_torrents_to_file(sett,torrents)
+    sett.close()
+
+def main():
+    defaults,groups,feeds,torrents = parse_configurations()
+
+    #Now we have sane settings, so lets update our RSS feeds
+    update_feeds(defaults,groups,feeds,torrents)
+
+    #Now that we have checked all our feeds, lets tend to our torrents
+    #This includes starting the newly added torrents from the feeds
+    update_torrents(defaults,groups,feeds,torrents)
+
+    #debug_print_torrents(torrents)
     #debug_print_settings_structs(defaults,groups,feeds)
-    #sett = open("rss_feed.conf","w")
-    #save_settings_to_file(sett,defaults,groups,feeds)
-    #sett.close()
+    #save_configurations(defaults,groups,feeds,torrents)
 
 if __name__ == "__main__":
     main()

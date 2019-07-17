@@ -52,8 +52,9 @@ published - string date of when the torrent was added to the feed - auto-generat
 
 Available Processing Steps:
 
-add_torrent(string) - will add a torrent url to rTorrent and have it start downloading
-delete_torrent() - will delete the current torrent
+add_torrent() - will add the current torrent to rTorrent and have it start downloading
+delete_torrent() - will delete the current torrent, leaving the files in the download location
+delete_torrent_and_file() - will delete the current torrent and the files it downloaded
 set_label(string) - set the current torrent's label to "string" (visable in ruTorrent)
 wait_for_torrent_complete() - periodicly checks to see if the torrent has finished downloading into rTorrent
 wait_for_ratio(int) - periodically check if the torrent has an upload ratio equal or grater than the given number
@@ -61,9 +62,10 @@ stop_tracking_if_torrent_removed() - if the torrent is removed from rTorrent, th
         conf from this program, but otherwise does nothing
 stop_tracking_torrent() - simply remove the torrent conf from this program without stopping or deleting the torrent
 
-increment_var(string) - add 1 to a variable named "string" in the current torrent
+increment_torrent_var(string) - add 1 to a variable named "string" in the current torrent
 increment_feed_var(string) - add 1 to a variable named "string" for the feed the current torrent came from
 increment_group_var(string) - add 1 to a variable named "string" for the group the current torrent came from
+increment_global_var(string) - add 1 to a variable named "string" in the global scope
 
 download_files(string) - downloads all the files in the torrent to the location specified in "string"
         - special behavior for single file torrents - the single file will be given the name in "string"
@@ -74,9 +76,14 @@ download_files_folder(string) - downloads all torrent files into a folder named 
 post_processing_steps() - runs the processing steps that are in the post_processing_steps() variable
 processing_steps_variable(string) - runs the processing steps that are in varaibale name given
 
-delete_feed() - deletes the feed that the torrent came from
 
 
+TODO - a list of known shortcomings/bugs
+ - you cannot have spaces in the values given to the processing steps
+ - make more clear in the documentation when we want just the name of a variable instead of the %variable% form
+ - you cannot have commas in the args being used in the processing steps
+    - possible solution - have the string variables parsed before splitting
+    - or just tell people that they can use a second var to hide the comma
 
 Style Guide - For Coders Only
 For processing_steps functionality, wait_*() functions always will let the program do other processing
