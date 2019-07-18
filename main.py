@@ -69,7 +69,7 @@ def update_feeds(defaults,groups,feeds,torrents):
         #Update the last entry information so we only grab newer entries
         feed["last_seen_link"] = links[-1]["link"]
         feed["last_seen_link_date"] = links[-1]["published"]
-        print("Found {} new links for {}".format(len(links),feed_url) )
+        print("\nFound {} new links for {}".format(len(links),feed_url) )
 
         #Add the new links onto the pile for us to process
         torrents.extend(links)
@@ -88,7 +88,6 @@ def update_torrents(defaults,groups,feeds,torrents):
 
         #Now lets run the processing steps on the torrent
         process_torrent(defaults,group,feed,torrent)
-        print("processed torrent")
 
 def save_configurations(defaults,groups,feeds,torrents):
     sett = open("rss_feed.conf","w")

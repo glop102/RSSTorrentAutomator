@@ -54,7 +54,7 @@ Available Processing Steps:
 
 add_torrent() - will add the current torrent to rTorrent and have it start downloading
 delete_torrent() - will delete the current torrent, leaving the files in the download location
-delete_torrent_and_file() - will delete the current torrent and the files it downloaded
+delete_torrent_and_files() - will delete the current torrent and the files it downloaded
 set_label(string) - set the current torrent's label to "string" (visable in ruTorrent)
 wait_for_torrent_complete() - periodicly checks to see if the torrent has finished downloading into rTorrent
 wait_for_ratio(int) - periodically check if the torrent has an upload ratio equal or grater than the given number

@@ -40,6 +40,9 @@ def __check_if_torrent_complete(defaults,infohash):
 def __set_torrent_label(defaults,infohash,label):
     connect_to_server(defaults)
     server.d.custom1.set(infohash,label)
+def __get_torrent_ratio(defaults,infohash):
+    connect_to_server(defaults)
+    return float( server.d.ratio(infohash) )
 
 #==========================================================================
 #  Torrent Expansion Functions
@@ -309,6 +312,20 @@ def step_set_label(defaults,group,feed,torrent,args):
         exit(-1)
     __set_torrent_label(defaults,torrent["infohash"],args[0])
     return False,True # ready_to_yield, do_next_step
+def step_wait_for_ratio(defaults,group,feed,torrent,args):
+    if len(args) != 1 or args[0] == "":
+        print("Error: wait_for_ratio requires a number")
+        exit(-1)
+    try:
+        wanted = float(args[0])
+        has = __get_torrent_ratio(defaults,torrent["infohash"])
+        if wanted > has:
+            return True,False # ready_to_yield, do_next_step
+        else:
+            return False,True # ready_to_yield, do_next_step
+    except:
+        print("Error: wait_for_ratio requires a number")
+        exit(-1)
 
 available_processing_steps = {
     "add_torrent" : step_add_torrent,
@@ -319,7 +336,8 @@ available_processing_steps = {
     "post_processing_steps" : step_post_processing_steps,
     "processing_steps_variable" : step_processing_steps_variable,
     "set_label" : step_set_label,
-    "wait_for_torrent_complete" : step_wait_for_torrent_complete
+    "wait_for_torrent_complete" : step_wait_for_torrent_complete,
+    "wait_for_ratio" : step_wait_for_ratio
 }
 
 #==========================================================================
