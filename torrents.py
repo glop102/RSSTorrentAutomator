@@ -30,8 +30,8 @@ def connect_to_server(defaults):
 def __add_torrent_to_rtorrent(defaults,url):
     """Give a list of urls or magnet links and we will ask rtorrent to add and start it. We return the torrent hash that rtorrent uses"""
     connect_to_server(defaults)
-    server.load.normal("",url)
-    #server.load.start("",url)
+    #server.load.normal("",url)
+    server.load.start("",url)
     sleep(0.25)
     return server.download_list()[-1]
 def __check_if_torrent_complete(defaults,infohash):

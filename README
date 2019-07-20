@@ -78,11 +78,7 @@ post_processing_steps() - runs the processing steps that are in the post_process
 processing_steps_variable(string) - runs the processing steps that are in varaibale name given
 
 
-
-TODO - a list of known shortcomings/bugs
- - you cannot have spaces in the arguments given to the processing steps
- - you cannot have commas in the args being used in the processing steps
-    - possible solution - have the string variables parsed before splitting
-        - then expanded values can't have commas either....
-    - possible solution - safe split with backslashes escaping the commas that are not deliminators
-    - or just tell people that they can use a second var to hide the comma
+TODO
+ - have some way to signal a feed to remove itself so you can say something like
+   "When reaching %episode% = 13, stop following this feed_url"
+ - Cleanup the README so a person stumbling across this can understand what is going on!

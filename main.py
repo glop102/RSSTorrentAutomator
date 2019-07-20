@@ -2,7 +2,7 @@
 
 from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
 from settings import parse_torrents_status_file, save_torrents_to_file
-from feeds import check_for_new_links
+from feeds import check_for_new_links,check_if_feed_marked_for_deletion
 from torrents import expand_new_torrent_object,process_torrent
 from downloads import setup_downloads_thread,stop_downloads_thread
 from time import sleep
@@ -33,26 +33,33 @@ def parse_configurations():
     return defaults,groups,feeds,torrents
 
 def update_feeds(defaults,groups,feeds,torrents):
+    removal_list = []
     for feed_url in feeds:
         feed = feeds[feed_url]
         links = check_for_new_links(feed)
-        if len(links) == 0 : continue
-
-        #Update the last entry information so we only grab newer entries
-        feed["last_seen_link"] = links[-1]["link"]
-        feed["last_seen_link_date"] = links[-1]["published"]
-        if len(links) > 0:
+        if len(links) > 0 :
+            #Update the last entry information so we only grab newer entries
+            feed["last_seen_link"] = links[-1]["link"]
+            feed["last_seen_link_date"] = links[-1]["published"]
             print("\nFound {} new links for {}".format(len(links),feed_url) )
 
-        #Add the new links onto the pile for us to process
-        torrents.extend(links)
+            #Add the new links onto the pile for us to process
+            torrents.extend(links)
+        group={"group_name":"DummyGroup"}
+        if "group_name" in feed: group = groups[feed["group_name"]]
+        if check_if_feed_marked_for_deletion(defaults,group,feed):
+            removal_list.append(feed_url)
+    for feed_url in removal_list:
+        del feeds[feed_url]
 
 def update_torrents(defaults,groups,feeds,torrents):
     #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
     removal_list = []
     for torrent in torrents:
         group={"group_name":"DummyGroup"}
-        feed=feeds[ torrent["feed_url"] ]
+        feed={"feed_url":torrent["feed_url"]}
+        if torrent["feed_url"] in feeds:
+            feed = feeds[ torrent["feed_url"] ]
         if "group_name" in feed:
             group = groups[feed["group_name"]]
 
