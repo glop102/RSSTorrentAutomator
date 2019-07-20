@@ -200,9 +200,11 @@ def settings_final_sanity_check(defaults,groups,feeds):
 
     if not "processing_steps" in defaults:
         #No user defualt so we will give our sane default
-        defaults["processing_steps"] = "add_torrent(%link%) wait_for_torrent_downloaded() set_label(downloaded) download_files() post_processing_steps()"
+        defaults["processing_steps"] = "add_torrent() wait_for_torrent_complete() set_label(downloaded) download_files(%download_destination%) post_processing_steps()"
     if not "post_processing_steps" in defaults:
-        defaults["post_processing_steps"] = "stop_tracking_if_torrent_removed()"
+        defaults["post_processing_steps"] = "stop_tracking_torrent()"
+    if not "download_destination" in defaults:
+        defaults["download_destination"] = "./"
 
     for feed in feeds:
         if "group_name" in feed and not feed["group_name"] in groups:
