@@ -2,15 +2,17 @@ AutomatedTorrentFeeds
 
 Having several common torrent streams that I like to download, I had started using a RSS reader to keep
 track of when new torrents came out. The release schedual is sporadic enough that it was a bit of a pain
-to add the torent manually from the feeds and then manage the files afterwards. Since I was doing seasonal
+to add the torents manually from the feeds and then manage the files afterwards. Since I was doing seasonal
 episodes, and each feed was for a single season of a show, it was the perfect type of thing to automate.
 
 
 Runtime Dependencies
+python3.4+
 
 = Gentoo =
  py-xmlrpc
  feedparser
+ paramiko
 
 
 Special Params
@@ -53,13 +55,12 @@ published - string date of when the torrent was added to the feed - auto-generat
 Available Processing Steps:
 
 add_torrent() - will add the current torrent to rTorrent and have it start downloading
-delete_torrent() - will delete the current torrent, leaving the files in the download location
+delete_torrent_only() - will remove the torrent from rTorrent but leave the files in their location
+        - we will also stop tracking the torrent; since it is useless to do so with the torrent gone
 delete_torrent_and_files() - will delete the current torrent and the files it downloaded
 set_label(string) - set the current torrent's label to "string" (visable in ruTorrent)
 wait_for_torrent_complete() - periodicly checks to see if the torrent has finished downloading into rTorrent
 wait_for_ratio(int) - periodically check if the torrent has an upload ratio equal or grater than the given number
-stop_tracking_if_torrent_removed() - if the torrent is removed from rTorrent, then remove the tracking
-        conf from this program, but otherwise does nothing
 stop_tracking_torrent() - simply remove the torrent conf from this program without stopping or deleting the torrent
 
 increment_torrent_var(string) - add 1 to a variable named "string" in the current torrent
@@ -70,7 +71,7 @@ increment_global_var(string) - add 1 to a variable named "string" in the global 
 download_files(string) - downloads all the files in the torrent to the location specified in "string"
         - special behavior for single file torrents - the single file will be given the name in "string"
 	  instead of being put in a folder of that name
-download_files_folder(string) - downloads all torrent files into a folder named "string"
+download_files_into_folder(string) - downloads all torrent files into a folder named "string"
         - unlike the above processing, this will always put things in a folder, nothing special
 
 post_processing_steps() - runs the processing steps that are in the post_processing_steps() variable
@@ -79,14 +80,9 @@ processing_steps_variable(string) - runs the processing steps that are in varaib
 
 
 TODO - a list of known shortcomings/bugs
- - you cannot have spaces in the values given to the processing steps
- - make more clear in the documentation when we want just the name of a variable instead of the %variable% form
+ - you cannot have spaces in the arguments given to the processing steps
  - you cannot have commas in the args being used in the processing steps
     - possible solution - have the string variables parsed before splitting
+        - then expanded values can't have commas either....
+    - possible solution - safe split with backslashes escaping the commas that are not deliminators
     - or just tell people that they can use a second var to hide the comma
-
-Style Guide - For Coders Only
-For processing_steps functionality, wait_*() functions always will let the program do other processing
-    instead of directly continuing that processing chain (eg let other RSS parsing happen when waiting)
-Variables are referenced in strings with %str% and special modifications to value substitutions is done
-    with :mod():mod2() after the variable name

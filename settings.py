@@ -192,7 +192,7 @@ def settings_final_sanity_check(defaults,groups,feeds):
     if "download_credentials_type" in defaults:
         #We have more credentials to parse
         if defaults['download_credentials_type'].lower() == 'netrc':
-            defaults['download_credentials'] = parse_login_credentials_netrc(defaults['downloadhost'])
+            defaults['download_credentials'] = parse_login_credentials_netrc(defaults['download_host'])
 
     if "current_processing_step" in defaults:
         print("Error: current_processing_step only allowed in the torrents conf file")

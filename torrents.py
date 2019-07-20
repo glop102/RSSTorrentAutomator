@@ -1,5 +1,6 @@
 import xmlrpc.client
 from time import sleep
+from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion
 
 #This is a global variable that holds our connection to rtorrent
 global server 
@@ -23,7 +24,6 @@ def connect_to_server(defaults):
         right = url[idx:]
         url = left+credentials+"@"+right
 
-    print(url)
     server = xmlrpc.client.Server(url)
 
 def __add_torrent_to_rtorrent(defaults,url):
@@ -43,6 +43,40 @@ def __set_torrent_label(defaults,infohash,label):
 def __get_torrent_ratio(defaults,infohash):
     connect_to_server(defaults)
     return float( server.d.ratio(infohash) )
+def __get_torrent_filecount(defaults,infohash):
+    connect_to_server(defaults)
+    return server.d.size_files(infohash)
+def __get_torrent_files_abs_paths(defaults,infohash,filename_glob=""):
+    # filename_glob - glob based filename filtering
+    connect_to_server(defaults)
+    paths = server.f.multicall(
+        infohash,
+        filename_glob,
+        [ "f.frozen_path=" ]
+    )
+    return [path[0] for path in paths]
+def __get_torrent_files_relative_paths(defaults,infohash,filename_glob=""):
+    # filename_glob - glob based filename filtering
+    connect_to_server(defaults)
+    paths = server.f.multicall(
+        infohash,
+        filename_glob,
+        [ "f.path=" ]
+    )
+    return [path[0] for path in paths]
+def __delete_torrent_only(defaults,infohash):
+    connect_to_server(defaults)
+    server.d.delete_tied(infohash)
+    server.d.erase(infohash)
+def __is_torrent_multifile(defaults,infohash):
+    connect_to_server(defaults)
+    res = int(server.d.is_multi_file(infohash))
+    if res == 1: return True
+    return False
+def __get_torrent_basepath(defaults,infohash):
+    connect_to_server(defaults)
+    return server.d.base_path(infohash)
+
 
 #==========================================================================
 #  Torrent Expansion Functions
@@ -326,6 +360,72 @@ def step_wait_for_ratio(defaults,group,feed,torrent,args):
     except:
         print("Error: wait_for_ratio requires a number")
         exit(-1)
+def step_download_files(defaults,group,feed,torrent,args):
+    if len(args) != 1 or args[0] == "":
+        print("Error: download_files requires a path to save to")
+        exit(-1)
+    if not "current_file_download_status" in torrent:
+        remote_file_paths = __get_torrent_files_abs_paths(defaults,torrent["infohash"])
+        local_base_dir = expand_string_variables(defaults,group,feed,torrent,args[0])
+        if len(remote_file_paths) == 1:
+            #special case, we assume the given local path is the name the file we want to write locally
+            queue_file_for_download(torrent["infohash"],remote_file_paths[0],local_base_dir)
+        else:
+            remote_file_paths_relative = __get_torrent_files_relative_paths(defaults,torrent["infohash"])
+            for path_abs,path_rel in zip(remote_file_paths,remote_file_paths_relative):
+                queue_file_for_download(
+                    torrent["infohash"], path_abs,
+                    local_base_dir+'/'+path_rel
+                    )
+        torrent["current_file_download_status"] = "queued_files_for_download"
+        return True,False # ready_to_yield, do_next_step
+    elif torrent["current_file_download_status"] == "queued_files_for_download":
+        if check_if_torrent_has_files_queued(torrent["infohash"]):
+            return True,False # ready_to_yield, do_next_step
+        else:
+            torrent["current_file_download_status"] = "files_downloaded"
+            return False,True # ready_to_yield, do_next_step
+    else:
+        print("Error: Unknown torrent download state")
+        exit(-1)
+def step_download_files_into_folder(defaults,group,feed,torrent,args):
+    if len(args) != 1 or args[0] == "":
+        print("Error: download_files requires a path to save to")
+        exit(-1)
+    if not "current_file_download_status" in torrent:
+        remote_file_paths = __get_torrent_files_abs_paths(defaults,torrent["infohash"])
+        local_base_dir = args[0]
+        remote_file_paths_relative = __get_torrent_files_relative_paths(defaults,torrent["infohash"])
+        for path_abs,path_rel in zip(remote_file_paths,remote_file_paths_relative):
+            queue_file_for_download(
+                torrent["infohash"], path_abs,
+                local_base_dir+'/'+path_rel
+                )
+        torrent["current_file_download_status"] = "queued_files_for_download"
+        return True,False # ready_to_yield, do_next_step
+    elif torrent["current_file_download_status"] == "queued_files_for_download":
+        if check_if_torrent_has_files_queued(torrent["infohash"]):
+            return True,False # ready_to_yield, do_next_step
+        else:
+            torrent["current_file_download_status"] = "files_downloaded"
+            return False,True # ready_to_yield, do_next_step
+    else:
+        print("Error: Unknown torrent download state")
+        exit(-1)
+def step_stop_tracking_torrent(defaults,group,feed,torrent,args):
+    torrent["current_processing_step"] = "ready_for_removal 0"
+    return True,False # ready_to_yield, do_next_step
+def step_delete_torrent_only(defaults,group,feed,torrent,args):
+    __delete_torrent_only(defaults,torrent["infohash"])
+    torrent["current_processing_step"] = "ready_for_removal 0"
+    return True,False # ready_to_yield, do_next_step
+def step_delete_torrent_and_files(defaults,group,feed,torrent,args):
+    basepath = __get_torrent_basepath(defaults,torrent["infohash"])
+    queue_remote_path_for_deletion(basepath)
+    __delete_torrent_only(defaults,torrent["infohash"])
+    torrent["current_processing_step"] = "ready_for_removal 0"
+    return True,False # ready_to_yield, do_next_step
+
 
 available_processing_steps = {
     "add_torrent" : step_add_torrent,
@@ -337,7 +437,12 @@ available_processing_steps = {
     "processing_steps_variable" : step_processing_steps_variable,
     "set_label" : step_set_label,
     "wait_for_torrent_complete" : step_wait_for_torrent_complete,
-    "wait_for_ratio" : step_wait_for_ratio
+    "wait_for_ratio" : step_wait_for_ratio,
+    "download_files" : step_download_files,
+    "download_files_into_folder" : step_download_files_into_folder,
+    "stop_tracking_torrent" : step_stop_tracking_torrent,
+    "delete_torrent_only" : step_delete_torrent_only,
+    "delete_torrent_and_files" : step_delete_torrent_and_files
 }
 
 #==========================================================================
@@ -373,11 +478,17 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
     torrent["current_processing_step"] = "processing_steps 0"
 
 def process_torrent(defaults,group,feed,torrent):
+    if torrent["current_processing_step"] == "ready_for_removal 0":
+        print("Error (Non-Fatal): torrent is in state ready_for_removal")
+        print("A torrent should not be in this state and get processed")
+        print("Contact the developer to fix this error")
+        return
 
     ready_to_yield = False
     while not ready_to_yield:
         #string, [strings] =
         process_name,args = get_processing_step_data(defaults,group,feed,torrent)
+        args = [expand_string_variables(defaults,group,feed,torrent,arg) for arg in args]
 
         if not process_name in available_processing_steps:
             print("Error: Unable to find processing step "+process_name)
