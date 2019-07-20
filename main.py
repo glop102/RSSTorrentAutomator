@@ -1,41 +1,11 @@
 #!/usr/bin/env python3
 
-"""
-Instructions for myself
-
-pull credentials from netrc file
- - remove current credentials before commiting to git the first time
-d.custom1(torrent_hash) is the label assigned in the ruTorrent webpage
-
-Flow - Adding New Torrents
-read RSS URLs from a file, and check for updates
- - write out checkpoint info for the RSS feed back into this file or some other file
-add the torrent urls to rTorrent and get their hash
- - set their label (use global setting, unless overriden for this feed)
-Update the current_torrents file
- - information needed for the associated torrent
-    - essentally a copy of the rss feed settings since we lose which rss feed it came from originally
- - torrent hash used to control torrent
- - torrent state (eg rss_init_step, downloading_remote, downloaded_remote, downloading_local, downloaded_local, waiting_for_ratio, deleted)
-
-Flow - Downloading
-get the show name and destination folder from the tracked torents file
- - info needed for torrent is added when the torrent is added in the previous flow
- - name will have %val% encoding allowed for dynamic naming
-if state == downloaded_remote
-  if num_files = 1 - download and name file
-  else download files into folder of name
-"""
-
 from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
 from settings import parse_torrents_status_file, save_torrents_to_file
 from feeds import check_for_new_links
 from torrents import expand_new_torrent_object,process_torrent
 from downloads import setup_downloads_thread,stop_downloads_thread
 from time import sleep
-
-from settings import debug_print_settings_structs
-from torrents import debug_print_torrent_name_from_infohash, debug_print_torrents
 
 def parse_configurations():
     defaults = {} #just a list of vars:values
@@ -126,7 +96,7 @@ def main():
 
         while True:
             #Now we have sane settings, so lets update our RSS feeds
-            #update_feeds(defaults,groups,feeds,torrents)
+            update_feeds(defaults,groups,feeds,torrents)
 
             #Now that we have checked all our feeds, lets tend to our torrents
             #This includes starting the newly added torrents from the feeds
@@ -137,9 +107,6 @@ def main():
     except KeyboardInterrupt:
         print("Caught Keyboard Interupt")
     finally:
-        #debug_print_torrents(torrents)
-        #debug_print_settings_structs(defaults,groups,feeds)
-
         print("Shutting Down Service...")
         save_configurations(defaults,groups,feeds,torrents)
         stop_downloads_thread()

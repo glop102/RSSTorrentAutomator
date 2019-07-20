@@ -1,6 +1,7 @@
 import xmlrpc.client
 from time import sleep
 from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion
+from variables import get_variable_value_cascaded,expand_string_variables,safe_parse_split
 
 #This is a global variable that holds our connection to rtorrent
 global server 
@@ -81,102 +82,9 @@ def __get_torrent_basepath(defaults,infohash):
 #==========================================================================
 #  Torrent Expansion Functions
 #==========================================================================
-def __modify_string_value(string,modifier):
-    if modifier == "":
-        return string
-
-    modifier = modifier.strip()
-    idx = modifier.index("(")
-    function = modifier[:idx]
-    argument = modifier[idx+1:-1] #skips the last paren
-    if function == "lpad" or function == "leftpad":
-        length = 0
-        padding= ' '
-        if ',' in argument:
-            length = int(argument.split(",")[0])
-            padding = argument.split(",")[1]
-        else:
-            length = int(argument)
-        string.rjust(length,padding)
-    elif function == "rpad" or function == "rightpad":
-        length = 0
-        padding= ' '
-        if ',' in argument:
-            length = int(argument.split(",")[0])
-            padding = argument.split(",")[1]
-        else:
-            length = int(argument)
-        string.ljust(length,padding)
-    else:
-        print("Error: unknown variable modifier '"+function+"'")
-        exit(-1)
-    return string
-def __expand_single_string_variable(defaults,group,feed,torrent,string):
-    """Assumption is that we are given EXACTLY 'variable' - percent signs already stripped """
-    if string == "": #
-        return "%" #we need to allow percent signs after all
-
-    #modifiers on the variables are split with ":"
-    sections = string.split(":")
-    #first item is the name of the variable to expand
-    name = sections.pop(0)
-
-    #get the initial value that we will modify and then return
-    val=""
-    if name in torrent:
-        val = torrent[name]
-    else:
-        val = get_variable_value_cascaded(defaults,group,feed,torrent,name)
-        torrent[name] = val
-
-    for mod in sections:
-        val = __modify_string_value(val,mod)
-    return val
-def expand_string_variables(defaults,group,feed,torrent,string):
-    """
-    Recursive function that replaces %variables% with their values
-    Uses the most specific group to get the value and then saves it to the torrent object
-    """
-    #Special knowledge '%abc%'.split('%') --> ['','abc',''] so every odd index is a variable
-    sections = string.split("%")
-
-    #the way it splits, we know that we will always have an odd number of indicies
-    if len(sections) %2 == 0:
-        print("Error: unmatched percent sign in string")
-        print("    "+string)
-        exit(-1)
-    if len(sections) == 1:
-        return string # no replacements needed
-
-    final_string = ""
-    for idx in range(len(sections)):
-        val = sections[idx]
-        if idx %2 == 1:
-            #is a variable so we must expand the value
-            val = __expand_single_string_variable(defaults,group,feed,torrent,val)
-            #and we must expand any variables that it references
-            val = expand_string_variables(defaults,group,feed,torrent,val)
-        #else is not a variable so nothing to expand
-        final_string = final_string + val
-    return final_string
-
-def get_variable_value_cascaded(defaults,group,feed,torrent,var_name):
-    """Trys to get the variable value from the most specific group possible"""
-    if var_name in torrent:
-        return torrent[var_name]
-    elif var_name in feed:
-        return feed[var_name]
-    elif var_name in group:
-        return group[var_name]
-    elif var_name in defaults:
-        return defaults[var_name]
-    else:
-        print("Error: variable '{}' is not defined".format(var_name))
-        print("Searched\n\tFeed : {}\n\tGroup {}\n\tdefaults".format(feed["feed_url"],group["group_name"]))
-        exit(-1)
 
 def __expand_processing_steps(defaults,group,feed,torrent,var_name):
-    steps = torrent[var_name].split()
+    steps = safe_parse_split(torrent[var_name]," ")
     need_expansion = []
     for step in steps:
         if "processing_steps_variable" in step:
@@ -199,7 +107,7 @@ def expand_processing_steps(defaults,group,feed,torrent):
     #Lets expand the default processing steps
     __expand_processing_steps(defaults,group,feed,torrent,"processing_steps")
 
-    steps = torrent["processing_steps"].split()
+    steps = safe_parse_split(torrent["processing_steps"]," ")
     if "post_processing_steps()" in steps:
         torrent["post_processing_steps"] = get_variable_value_cascaded(defaults,group,feed,torrent,"post_processing_steps")
         #Lets expand this extra case of processing steps
@@ -258,7 +166,7 @@ def get_processing_step_data(defaults,group,feed,torrent):
         steps.append([step_name,step_args])
 
     step = steps[cur_step_num]
-    return step[0] , step[1].split(',')
+    return step[0] , safe_parse_split(step[1],',')
 
 def step_add_torrent(defaults,group,feed,torrent,args):
     if len(args) > 0 and not args[0] == '':
@@ -366,7 +274,7 @@ def step_download_files(defaults,group,feed,torrent,args):
         exit(-1)
     if not "current_file_download_status" in torrent:
         remote_file_paths = __get_torrent_files_abs_paths(defaults,torrent["infohash"])
-        local_base_dir = expand_string_variables(defaults,group,feed,torrent,args[0])
+        local_base_dir = args[0]
         if len(remote_file_paths) == 1:
             #special case, we assume the given local path is the name the file we want to write locally
             queue_file_for_download(torrent["infohash"],remote_file_paths[0],local_base_dir)
