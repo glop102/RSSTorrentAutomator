@@ -1,7 +1,7 @@
 def mod_lpad(args,string):
     length = 0
     padding= ' '
-    if len(args)>2:
+    if len(args)>=2:
         length = int(args[0])
         padding= args[1]
     elif len(args) == 1:
@@ -13,7 +13,7 @@ def mod_lpad(args,string):
 def mod_rpad(args,string):
     length = 0
     padding= ' '
-    if len(args)>2:
+    if len(args)>=2:
         length = int(args[0])
         padding= args[1]
     elif len(args) == 1:

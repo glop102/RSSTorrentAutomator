@@ -1,11 +1,27 @@
 #!/usr/bin/env python3
-
+import signal
 from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
 from settings import parse_torrents_status_file, save_torrents_to_file
 from feeds import check_for_new_links,check_if_feed_marked_for_deletion
 from torrents import expand_new_torrent_object,process_torrent
 from downloads import setup_downloads_thread,stop_downloads_thread
 from time import sleep
+
+global main_loop_conditional
+main_loop_conditional=True
+def signal_program_shutdown(sig,frame):
+    print("Caught SIGINT")
+    global main_loop_conditional
+    main_loop_conditional=False
+
+def main_loop_sleep(defaults):
+    delay_time = 30*60 #30 minutes default period
+    try:
+        delay_time = int(defaults["feed_check_period"])
+    except: pass
+    for x in range(int(delay_time/2)):
+        if not main_loop_conditional: raise AssertionError
+        sleep(2)
 
 def parse_configurations():
     defaults = {} #just a list of vars:values
@@ -87,13 +103,6 @@ def save_configurations(defaults,groups,feeds,torrents):
     save_torrents_to_file(sett,torrents)
     sett.close()
 
-def main_loop_sleep(defaults):
-    delay_time = 30*60 #30 minutes default period
-    try:
-        delay_time = int(defaults["feed_check_period"])
-    except: pass
-    sleep(delay_time)
-
 def main():
     try:
         defaults,groups,feeds,torrents = parse_configurations()
@@ -113,12 +122,14 @@ def main():
             main_loop_sleep(defaults)
     except KeyboardInterrupt:
         print("Caught Keyboard Interupt")
+    except AssertionError: pass #just catching SIGTERM
     finally:
         print("Shutting Down Service...")
         save_configurations(defaults,groups,feeds,torrents)
         stop_downloads_thread()
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, signal_program_shutdown)
     main()
 
 

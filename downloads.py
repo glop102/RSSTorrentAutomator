@@ -10,14 +10,21 @@ sftp = None
 
 sftp_chunk_size = 32768
 
-global __start_time
+global __start_time,__last_status_print
 __start_time = None
+__last_status_print = None
 def __periodic_status_print(bytes_done,bytes_total):
-    out = "\r\t"
+    now = time.time()
+    global __last_status_print
+    if (now - __last_status_print) < 5: #print every 5 seconds
+        return
+    __last_status_print = now
+
+    out = "\t"
     percentage = int(int(bytes_done*1000)/int(bytes_total))/10.0
     out = out + str(percentage).rjust(6) + "%    "
 
-    elapsed_time = time.time() - __start_time
+    elapsed_time = now - __start_time
     speed = float(bytes_done) / elapsed_time
     speed_type = " B/s"
     if speed < 1000: pass #really slow bytes per second
@@ -33,13 +40,15 @@ def __periodic_status_print(bytes_done,bytes_total):
     speed = int(speed*10.0)/10.0 # limit to 1 decimalpoint
     out = out + str(speed).rjust(7) + " " + speed_type
 
-    print(out,end="")
+    print(out)
 def __download_single_file(remote_loc,local_loc):
     __make_folder_parent(local_loc)
-    global __start_time
+    print("Starting File Download : "+local_loc)
+    global __start_time,__last_status_print
     __start_time = time.time()
+    __last_status_print = time.time()
     sftp.get(remote_loc,local_loc,callback=__periodic_status_print)
-    print() # clear the progress line
+    print("\tFile Download Complete")
 def __make_folder_parent(loc):
     #Make sure the folder exists, and touch the file
     p = Path(loc)

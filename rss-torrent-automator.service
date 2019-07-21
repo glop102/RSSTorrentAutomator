@@ -1,0 +1,14 @@
+[Unit]
+Description=RSS Feed Automator For Torrents
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/RSSTorrentAutomator/custom
+ExecStart=/usr/bin/python3 /opt/RSSTorrentAutomator/main.py
+User=glop102
+Group=glop102
+TimeoutStopSec=120
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

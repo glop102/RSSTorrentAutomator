@@ -30,10 +30,14 @@ def connect_to_server(defaults):
 def __add_torrent_to_rtorrent(defaults,url):
     """Give a list of urls or magnet links and we will ask rtorrent to add and start it. We return the torrent hash that rtorrent uses"""
     connect_to_server(defaults)
+    num_torrents = len(server.download_list())
     #server.load.normal("",url)
     server.load.start("",url)
-    sleep(0.25)
-    return server.download_list()[-1]
+    hashlist = server.download_list()
+    while len(hashlist) == num_torrents:
+        sleep(0.25)
+        hashlist = server.download_list()
+    return hashlist[-1]
 def __check_if_torrent_complete(defaults,infohash):
     """Returns True or False"""
     connect_to_server(defaults)
@@ -377,7 +381,8 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
             new_keys = False
             for key in torrent.keys():
                 if key in keys_checked: continue
-                expand_string_variables(defaults,group,feed,torrent,torrent[key])
+                if not key == "feed_url":
+                    expand_string_variables(defaults,group,feed,torrent,torrent[key])
                 keys_checked.append(key)
         except:
             new_keys = True
