@@ -137,6 +137,18 @@ def main_thread_function():
     This is a simple loop that pops an item from the queue and then downloads the file.
     It continues the loop until it runs out of items in the queue, then exits.
     """
+    global sftp_transport,sftp
+    try:
+        sftp_transport = paramiko.Transport((host, port))
+        sftp_transport.connect(username=username, password=password)
+        sftp = paramiko.SFTPClient.from_transport(sftp_transport)
+    except Exception as e:
+        print(e)
+        print("Warning: Unable to connect sftp client to remote server")
+        sftp_transport = None
+        sftp = None
+        return
+
     try:
         while downloads_keep_processing:
             remote_loc,local_loc = get_next_item_from_queue()
@@ -146,6 +158,10 @@ def main_thread_function():
                 __download_single_file(remote_loc,local_loc)
             remove_next_item_from_queue()
             save_queue_to_file()
+
+        sftp.close()
+        sftp_transport = None
+        sftp = None
     except IndexError:
         #print("Download Queue Now Empty")
         pass
@@ -170,6 +186,7 @@ def setup_downloads_thread(defaults):
     If we are not able to connect to the remote machine, then we will simply
     add files to the conf for downloading later.
     """
+    global host,port
     if not "download_host" in defaults:
         print("Download Info Not Given - running in buffer mode")
     host = defaults["download_host"]
@@ -177,16 +194,8 @@ def setup_downloads_thread(defaults):
     if ":" in host:
         host,port = host.split(":")
 
+    global username,password
     username,password = defaults["download_credentials"].split(":")
-    global sftp_transport,sftp
-    try:
-        sftp_transport = paramiko.Transport((host, port))
-        sftp_transport.connect(username=username, password=password)
-        sftp = paramiko.SFTPClient.from_transport(sftp_transport)
-    except:
-        print("Warning: Unable to connect sftp client to remote server")
-        sftp_transport = None
-        sftp = None
 
     load_queue_from_file()
     __restart_thread()

@@ -50,6 +50,7 @@ def parse_configurations():
 
 def update_feeds(defaults,groups,feeds,torrents):
     removal_list = []
+    config_update= False
     for feed_url in feeds:
         feed = feeds[feed_url]
         links = check_for_new_links(feed)
@@ -57,6 +58,7 @@ def update_feeds(defaults,groups,feeds,torrents):
             #Update the last entry information so we only grab newer entries
             feed["last_seen_link"] = links[-1]["link"]
             feed["last_seen_link_date"] = links[-1]["published"]
+            config_update = True
             print("\nFound {} new links for {}".format(len(links),feed_url) )
 
             #Add the new links onto the pile for us to process
@@ -67,6 +69,10 @@ def update_feeds(defaults,groups,feeds,torrents):
             removal_list.append(feed_url)
     for feed_url in removal_list:
         del feeds[feed_url]
+    if config_update:
+        sett = open("rss_feed.conf","w")
+        save_settings_to_file(sett,defaults,groups,feeds)
+        sett.close()
 
 def update_torrents(defaults,groups,feeds,torrents):
     #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
@@ -92,6 +98,12 @@ def update_torrents(defaults,groups,feeds,torrents):
     removal_list.reverse()
     for idx in removal_list:
         del torrents[idx]
+
+    #save the torrents settings if there are any or if we just delted the last torrent
+    if len(torrents) > 0 or len(removal_list) > 0:
+        sett = open("current_torrents.conf","w")
+        save_torrents_to_file(sett,torrents)
+        sett.close()
 
 
 def save_configurations(defaults,groups,feeds,torrents):
