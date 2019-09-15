@@ -179,6 +179,8 @@ def step_add_torrent(defaults,group,feed,torrent,args):
     if len(args) > 0 and not args[0] == '':
         print("Error: add_torrent does not take arguments")
         exit(-1)
+    if "title" in torrent :
+        print("Adding Torrent to Server : "+torrent["title"])
     infohash = __add_torrent_to_rtorrent(defaults,torrent["link"])
     torrent["infohash"] = infohash
     return False,True # ready_to_yield, do_next_step
@@ -400,6 +402,8 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
     if not "processing_steps" in torrent:
         print("Error: processing_steps not defined for torrent being added. This is required so that we know what we are doing with this torrent.")
         exit(-1)
+    if "title" in torrent:
+        print("Expanding new torrent : "+torrent["title"])
 
     #parse through processing_steps and add all sub_process variables
     expand_processing_steps(defaults,group,feed,torrent)
