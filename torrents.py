@@ -142,7 +142,6 @@ def __get_next_step_args(steps_orig):
     for c in steps_orig:
         if skip_next:
             skip_next = False
-            continue
         elif c == "(":
             paren_stack = paren_stack + 1
         elif c == ")":
