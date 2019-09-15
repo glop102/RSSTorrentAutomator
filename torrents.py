@@ -1,4 +1,5 @@
 import xmlrpc.client
+import re
 from time import sleep
 from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion
 from variables import get_variable_value_cascaded,expand_string_variables,safe_parse_split
@@ -45,6 +46,9 @@ def __check_if_torrent_complete(defaults,infohash):
 def __set_torrent_label(defaults,infohash,label):
     connect_to_server(defaults)
     server.d.custom1.set(infohash,label)
+def __get_torrent_name(defaults,infohash):
+    connect_to_server(defaults)
+    return server.d.name(infohash)
 def __get_torrent_ratio(defaults,infohash):
     connect_to_server(defaults)
     return float( server.d.ratio(infohash) )
@@ -337,6 +341,33 @@ def step_delete_torrent_and_files(defaults,group,feed,torrent,args):
     __delete_torrent_only(defaults,torrent["infohash"])
     torrent["current_processing_step"] = "ready_for_removal 0"
     return True,False # ready_to_yield, do_next_step
+def step_retrieve_torrent_name(defaults,group,feed,torrent,args):
+    name = __get_torrent_name(defaults,torrent["infohash"])
+    torrent["torrent_name"] = name
+    return False,True # ready_to_yield, do_next_step
+def step_regex_parse(defaults,group,feed,torrent,args):
+    if len(args)<3:
+        print("3 Arguments required for regex parsing")
+        exit(-1)
+    if not args[0] in torrent:
+        print("Cannot find variable '{}' in torrent to parse with regex".format(args[0]))
+        exit(-1)
+    if args[1] == "":
+        print("An empty regex is not valid")
+        exit(-1)
+    if args[2] == "":
+        print("You need to have a non-empty variable name for regex to store into")
+        exit(-1)
+    orig_val = torrent[args[0]]
+    regex_string = args[1]
+    search = re.search(regex_string,orig_val)
+    if search == None:
+        #found no match
+        torrent[args[2]] = ""
+    else:
+        #found a match
+        torrent[args[2]] = search[0]
+    return False,True # ready_to_yield, do_next_step
 
 
 available_processing_steps = {
@@ -354,7 +385,9 @@ available_processing_steps = {
     "download_files_into_folder" : step_download_files_into_folder,
     "stop_tracking_torrent" : step_stop_tracking_torrent,
     "delete_torrent_only" : step_delete_torrent_only,
-    "delete_torrent_and_files" : step_delete_torrent_and_files
+    "delete_torrent_and_files" : step_delete_torrent_and_files,
+    "retrieve_torrent_name" : step_retrieve_torrent_name,
+    "regex_parse" : step_regex_parse
 }
 
 #==========================================================================

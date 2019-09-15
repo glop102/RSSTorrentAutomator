@@ -113,6 +113,8 @@ increment_group_var       | string | Will increment an integer variable in the p
 increment_global_var      | string | Will increment an integer variable in the parent global structure.
 post_processing_steps     |        | Switch to processing the step list in the varaible called post_processing_steps. (Be carefule of recursion)
 processing_steps_variable | string | Switch to processing the step list in the varaible name given as the argument. (Be carefule of recursion)
+retrieve_torrent_name     |        | Gets the name of the torrent from the server and stores it in variable named "torrent_name"
+regex_parse               |string,string,string | Applies a regular expression to a variable and stores it in another variable. The order of arguments is (SourceVarName,RegularExpression,DestinationVarName), The source variable must exist, but the destination can be new.
 
 
 ### String Varaible Expansion
