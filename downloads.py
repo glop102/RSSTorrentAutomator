@@ -10,21 +10,32 @@ sftp = None
 
 sftp_chunk_size = 32768
 
-global __start_time,__last_status_print
+global __start_time,__prev_time,__prev_bytes
 __start_time = None
-__last_status_print = None
+__prev_time = None
+__prev_bytes = None
 def __periodic_status_print(bytes_done,bytes_total):
     now = time.time()
-    global __last_status_print
-    if (now - __last_status_print) < 5: #print every 5 seconds
+    global __start_time,__prev_time,__prev_bytes
+    if bytes_done == bytes_total:
+        speed_text = __download_speed_text(bytes_total,now-__start_time)
+        print("\tAverage Speed "+speed_text)
+    elif (now - __prev_time) < 5: #print every 5 seconds
+        # Do not spam the logs with extra prints
         return
-    __last_status_print = now
+    else:
+        # Incremental percentage/speed update
 
-    out = "\t"
-    percentage = int(int(bytes_done*1000)/int(bytes_total))/10.0
-    out = out + str(percentage).rjust(6) + "%    "
-
-    elapsed_time = now - __start_time
+        # times 100 for percentage and times 10 for an extra decimal point
+        percentage = int(int(bytes_done*100*10)/int(bytes_total))/10.0
+        percentage = str(percentage).rjust(6)
+        elapsed_time = now - __prev_time
+        elapsed_bytes = bytes_done - __prev_bytes
+        speed_text = __download_speed_text(elapsed_bytes,elapsed_time)
+        print("\t{}%    {}".format(percentage,speed_text))
+        __prev_time = now
+        __prev_bytes = bytes_done
+def __download_speed_text(bytes_done,elapsed_time):
     speed = float(bytes_done) / elapsed_time
     speed_type = " B/s"
     if speed < 1000: pass #really slow bytes per second
@@ -38,15 +49,14 @@ def __periodic_status_print(bytes_done,bytes_total):
         speed_type = "GB/s"
         speed = speed / (1000*1000*1000.0)
     speed = int(speed*10.0)/10.0 # limit to 1 decimalpoint
-    out = out + str(speed).rjust(7) + " " + speed_type
-
-    print(out)
+    return str(speed).rjust(7) + " " + speed_type
 def __download_single_file(remote_loc,local_loc):
     __make_folder_parent(local_loc)
     print("Starting File Download : "+local_loc)
-    global __start_time,__last_status_print
+    global __start_time,__prev_time,__prev_bytes
     __start_time = time.time()
-    __last_status_print = time.time()
+    __prev_time = __start_time
+    __prev_bytes = 0
     sftp.get(remote_loc,local_loc,callback=__periodic_status_print)
     print("\tFile Download Complete")
 def __make_folder_parent(loc):
