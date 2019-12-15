@@ -369,6 +369,43 @@ def step_regex_parse(defaults,group,feed,torrent,args):
         #found a match
         torrent[args[2]] = search[0]
     return False,True # ready_to_yield, do_next_step
+def step_set_feed_var(defaults,group,feed,torrent,args):
+    if len(args) < 2:
+        print("Error: Two arguments must be given to set_feed_var (var_name,var_value)")
+        exit(-1)
+    if args[0] == "":
+        print("Error: Var Name passed to set_feed_var is empty")
+        exit(-1)
+
+    var_name = args[0]
+    var_value = args[1]
+    feed[var_name] = var_value
+
+    return False,True # ready_to_yield, do_next_step
+def step_branch_if_vars_equal(defaults,group,feed,torrent,args):
+    if not len(args) == 3:
+        print("Error: Three arguments must be given to set_feed_var (var_name,var_name,processing_steps_varname)")
+        exit(-1)
+    for x in [0,1,2]:
+        if args[x] == "":
+            print("Error: Var Name {} passed to set_feed_var is empty".format(x+1))
+            exit(-1)
+
+    v1n = args[0]
+    v2n = args[1]
+    stepsName = args[2]
+
+    if (not v1n in torrent) or (not v2n in torrent):
+        # print("branch had a missing conditional var so skipping")
+        return False,True # ready_to_yield, do_next_step
+
+    v1v = expand_string_variables(defaults,group,feed,torrent,torrent[v1n])
+    v2v = expand_string_variables(defaults,group,feed,torrent,torrent[v2n])
+    if v1v == v2v:
+        # special return becuase of auto-incrementing breaking the next steps
+        return step_processing_steps_variable(defaults,group,feed,torrent,[stepsName])
+
+    return False,True # ready_to_yield, do_next_step
 
 
 available_processing_steps = {
@@ -388,7 +425,9 @@ available_processing_steps = {
     "delete_torrent_only" : step_delete_torrent_only,
     "delete_torrent_and_files" : step_delete_torrent_and_files,
     "retrieve_torrent_name" : step_retrieve_torrent_name,
-    "regex_parse" : step_regex_parse
+    "regex_parse" : step_regex_parse,
+    "set_feed_var" : step_set_feed_var,
+    "branch_if_vars_equal" : step_branch_if_vars_equal
 }
 
 #==========================================================================

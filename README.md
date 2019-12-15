@@ -4,6 +4,9 @@ Watches a list of RSS feeds and adds the links to rTorrent.
 It then will tend to the torrents acording to the processing steps you give.
 I personally use it to grab seasonal anime and auto add to my Plex library.
 
+I wrote this originally over 3 days and let the feature sprawl just happen.
+It is a little bit of a mess due to absolutly 0 planning and kindof recomend using something else.
+
 ## Runtime Dependencies
 
 python3.4+
@@ -24,6 +27,7 @@ python3.4+
 
 
 ### Most Basic rss_feed.conf
+
 ```
 server_url : https://giotto.whatbox.ca:443/xmlrpc
 credentials_type : plain
@@ -115,6 +119,8 @@ post_processing_steps     |        | Switch to processing the step list in the v
 processing_steps_variable | string | Switch to processing the step list in the varaible name given as the argument. (Be carefule of recursion)
 retrieve_torrent_name     |        | Gets the name of the torrent from the server and stores it in variable named "torrent_name"
 regex_parse               |string,string,string | Applies a regular expression to a variable and stores it in another variable. The order of arguments is (SourceVarName,RegularExpression,DestinationVarName), The source variable must exist, but the destination can be new.
+set_feed_var              | string,string | Save a value when processing a torrent to the feed that a torrent came from. First string is the variable name. Second string is the value to set. (eg set_feed_var(last_downloaded_epNum,%episode_num%) )
+branch_if_vars_equal      | string,string,string | It compares the values of two arguments and if they are the same, it will jump to the processing steps in the variable of the third argument. If a variable name does not exist, then it will not take the branch.
 
 
 ### String Varaible Expansion
