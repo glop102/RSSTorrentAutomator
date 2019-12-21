@@ -75,11 +75,9 @@ def __expand_single_string_variable(defaults,group,feed,torrent,string):
     name = sections.pop(0)
 
     #get the initial value that we will modify and then return
-    val=""
-    if name in torrent:
-        val = torrent[name]
-    else:
-        val = get_variable_value_cascaded(defaults,group,feed,torrent,name)
+    val = get_variable_value_cascaded(defaults,group,feed,torrent,name)
+    if not name in torrent:
+        #make sure the torrent has all variables it needs in case a parent is deleted
         torrent[name] = val
 
     for mod in sections:
@@ -113,8 +111,11 @@ def expand_string_variables(defaults,group,feed,torrent,string):
         final_string = final_string + val
     return final_string
 
-def get_variable_value_cascaded(defaults,group,feed,torrent,var_name):
-    """Trys to get the variable value from the most specific group possible"""
+def get_variable_value_cascaded(defaults,group,feed,torrent,var_name,printSearchOnFailure=True):
+    """
+    Trys to get the variable value from the most specific group possible.
+    The Last defaulted parameter is set to preserve the previous behavior of printing on failure.
+    """
     if var_name in torrent:
         return torrent[var_name]
     elif var_name in feed:
@@ -124,6 +125,7 @@ def get_variable_value_cascaded(defaults,group,feed,torrent,var_name):
     elif var_name in defaults:
         return defaults[var_name]
     else:
-        print("Error: variable '{}' is not defined".format(var_name))
-        print("Searched\n\tFeed : {}\n\tGroup {}\n\tdefaults".format(feed["feed_url"],group["group_name"]))
-        exit(-1)
+        if printSearchOnFailure:
+            print("Error: variable '{}' is not defined".format(var_name))
+            print("Searched\n\tFeed : {}\n\tGroup {}\n\tdefaults".format(feed["feed_url"],group["group_name"]))
+        raise KeyError("Variable name not found : "+var_name)

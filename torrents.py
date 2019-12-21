@@ -359,7 +359,7 @@ def step_regex_parse(defaults,group,feed,torrent,args):
     if args[2] == "":
         print("You need to have a non-empty variable name for regex to store into")
         exit(-1)
-    orig_val = torrent[args[0]]
+    orig_val = get_variable_value_cascaded(defaults,group,feed,torrent,args[0])
     regex_string = args[1]
     search = re.search(regex_string,orig_val)
     if search == None:
@@ -395,15 +395,18 @@ def step_branch_if_vars_equal(defaults,group,feed,torrent,args):
     v2n = args[1]
     stepsName = args[2]
 
-    if (not v1n in torrent) or (not v2n in torrent):
-        # print("branch had a missing conditional var so skipping")
-        return False,True # ready_to_yield, do_next_step
+    try:
+        v1v = get_variable_value_cascaded(defaults,group,feed,torrent,v1n)
+        v1v = expand_string_variables(defaults,group,feed,torrent,v1v)
 
-    v1v = expand_string_variables(defaults,group,feed,torrent,torrent[v1n])
-    v2v = expand_string_variables(defaults,group,feed,torrent,torrent[v2n])
-    if v1v == v2v:
-        # special return becuase of auto-incrementing breaking the next steps
-        return step_processing_steps_variable(defaults,group,feed,torrent,[stepsName])
+        v2v = get_variable_value_cascaded(defaults,group,feed,torrent,v2n)
+        v2v = expand_string_variables(defaults,group,feed,torrent,v2v)
+        if v1v == v2v:
+            # special return becuase of auto-incrementing breaking the next steps
+            return step_processing_steps_variable(defaults,group,feed,torrent,[stepsName])
+    except:
+        # print("branch had a missing conditional var so skipping")
+        pass
 
     return False,True # ready_to_yield, do_next_step
 
@@ -448,19 +451,15 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
     expand_processing_steps(defaults,group,feed,torrent)
 
     #parse through all variables and do a string replace
-    #do NOT save the result of the parsing back to the variable, we are only parsing to know what variables we need to copy from the parent sections. We want to allow later changes to the string, such as completion time or whatever
-    new_keys = True
-    keys_checked = []
-    while new_keys:
-        try:
-            new_keys = False
-            for key in torrent.keys():
-                if key in keys_checked: continue
-                if not key == "feed_url":
-                    expand_string_variables(defaults,group,feed,torrent,torrent[key])
-                keys_checked.append(key)
-        except:
-            new_keys = True
+    #do NOT save the result of the parsing back to the variable, we are only parsing to force a copy of all the variables to be available to the torrent
+    #the expansion code itself copies in missing keys to the torrent object if they are missing, but ina non-expanded form
+    try:
+        for key in torrent.keys():
+            if not key == "feed_url":
+                expand_string_variables(defaults,group,feed,torrent,torrent[key])
+    except KeyError:
+        print("Unable to expand torrent - exiting...")
+        exit(-1)
 
     #we do not check if it already exists because we assume this is a new torrent
     torrent["current_processing_step"] = "processing_steps 0"

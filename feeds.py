@@ -32,13 +32,21 @@ def check_for_new_links(feed):
     return list(reversed(entries))
 
 def check_if_feed_marked_for_deletion(defaults,group,feed):
+    equaltiy_condition = None
     try:
-        condition = feed["remove_feed_if_equal"]
-        args = safe_parse_split(condition," ")
+        equaltiy_condition = get_variable_value_cascaded(defaults,group,feed,{},"remove_feed_if_equal",print=False)
+    except:
+        return False # no condition specified to delete things
+
+    try:
+        args = safe_parse_split(equality_condition," ")
+        if len(args) != 2:
+            return False # bad format for the equality condition
         args[0] = expand_string_variables(defaults,group,feed,{},args[0])
         args[1] = expand_string_variables(defaults,group,feed,{},args[1])
         if args[0] == args[1]:
             return True
-    except:
+    except Exception as e:
+        print(e)
         pass # no specified condition to remove this feed
     return False # not ready to be removed

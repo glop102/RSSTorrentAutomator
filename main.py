@@ -19,9 +19,9 @@ def main_loop_sleep(defaults):
     try:
         delay_time = int(defaults["feed_check_period"])
     except: pass
-    for x in range(int(delay_time/2)):
+    for x in range(int(delay_time/10)):
         if not main_loop_conditional: raise AssertionError
-        sleep(2)
+        sleep(10)
 
 def parse_configurations():
     defaults = {} #just a list of vars:values
@@ -64,8 +64,11 @@ def update_feeds(defaults,groups,feeds,torrents):
             #Add the new links onto the pile for us to process
             torrents.extend(links)
         group={"group_name":"DummyGroup"}
-        if "group_name" in feed: group = groups[feed["group_name"]]
+        if "group_name" in feed:
+            group = groups[feed["group_name"]]
         if check_if_feed_marked_for_deletion(defaults,group,feed):
+            print("Removing feed : "+feed_url)
+            config_update = True
             removal_list.append(feed_url)
     for feed_url in removal_list:
         del feeds[feed_url]
