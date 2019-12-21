@@ -454,7 +454,8 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
     #do NOT save the result of the parsing back to the variable, we are only parsing to force a copy of all the variables to be available to the torrent
     #the expansion code itself copies in missing keys to the torrent object if they are missing, but ina non-expanded form
     try:
-        for key in torrent.keys():
+        keys = [k for k in torrent.keys()]
+        for key in keys:
             if not key == "feed_url":
                 expand_string_variables(defaults,group,feed,torrent,torrent[key])
     except KeyError:
