@@ -115,6 +115,10 @@ increment_torrent_var     | string | Will increment an integer variable in the c
 increment_feed_var        | string | Will increment an integer variable in the parent feed structure. Useful for giving unique names to torrents grabed by the same feed. (Not valid if the feed has been deleted)
 increment_group_var       | string | Will increment an integer variable in the parent group structure that the feed inherited from. (Not valid if the feed has been delted or if the feed does not inherit from a group)
 increment_global_var      | string | Will increment an integer variable in the parent global structure.
+addition_torrent_var      | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the current torrent structure.  You can dereference a variable for either integers with %var% like normal.
+addition_feed_var         | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the parent feed structure. You can dereference a variable for either integers with %var% like normal.
+addition_group_var        | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the parent group structure. You can dereference a variable for either integers with %var% like normal.
+addition_global_var       | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the global structure. You can dereference a variable for either integers with %var% like normal.
 post_processing_steps     |        | Switch to processing the step list in the varaible called post_processing_steps. (Be carefule of recursion)
 processing_steps_variable | string | Switch to processing the step list in the varaible name given as the argument. (Be carefule of recursion)
 retrieve_torrent_name     |        | Gets the name of the torrent from the server and stores it in variable named "torrent_name"

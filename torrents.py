@@ -240,6 +240,86 @@ def step_increment_global_var(defaults,group,feed,torrent,args):
             print("Error: variable {} does not seem to be a number".format(var))
             exit(-1)
     return False,True # ready_to_yield, do_next_step
+def step_addition_torrent_var(defaults,group,feed,torrent,args):
+    if len(args) != 3 or "" in args:
+        print("Error: 3 arguments must be given to addition_torrent_var : float,float,destinationName")
+        exit(-1)
+    left = args[0]
+    right = args[1]
+    dest = args[2]
+    if "." in left or "." in right:
+        try:
+            torrent[dest] = str(float(left) + float(right))
+        except:
+            print("Error: The given arguments do not seem to be floats : {} , {}".format(left,right))
+            exit(-1)
+    else:
+        try:
+            torrent[dest] = str(int(left) + int(right))
+        except:
+            print("Error: The given arguments do not seem to be ints : {} , {}".format(left,right))
+            exit(-1)
+    return False,True # ready_to_yield, do_next_step
+def step_addition_feed_var(defaults,group,feed,torrent,args):
+    if len(args) != 3 or "" in args:
+        print("Error: 3 arguments must be given to addition_feed_var : float,float,destinationName")
+        exit(-1)
+    left = args[0]
+    right = args[1]
+    dest = args[2]
+    if "." in left or "." in right:
+        try:
+            feed[dest] = str(float(left) + float(right))
+        except:
+            print("Error: The given arguments do not seem to be floats : {} , {}".format(left,right))
+            exit(-1)
+    else:
+        try:
+            feed[dest] = str(int(left) + int(right))
+        except:
+            print("Error: The given arguments do not seem to be ints : {} , {}".format(left,right))
+            exit(-1)
+    return False,True # ready_to_yield, do_next_step
+def step_addition_group_var(defaults,group,feed,torrent,args):
+    if len(args) != 3 or "" in args:
+        print("Error: 3 arguments must be given to addition_group_var : float,float,destinationName")
+        exit(-1)
+    left = args[0]
+    right = args[1]
+    dest = args[2]
+    if "." in left or "." in right:
+        try:
+            group[dest] = str(float(left) + float(right))
+        except:
+            print("Error: The given arguments do not seem to be floats : {} , {}".format(left,right))
+            exit(-1)
+    else:
+        try:
+            group[dest] = str(int(left) + int(right))
+        except:
+            print("Error: The given arguments do not seem to be ints : {} , {}".format(left,right))
+            exit(-1)
+    return False,True # ready_to_yield, do_next_step
+def step_addition_global_var(defaults,group,feed,torrent,args):
+    if len(args) != 3 or "" in args:
+        print("Error: 3 arguments must be given to addition_global_var : float,float,destinationName")
+        exit(-1)
+    left = args[0]
+    right = args[1]
+    dest = args[2]
+    if "." in left or "." in right:
+        try:
+            defaults[dest] = str(float(left) + float(right))
+        except:
+            print("Error: The given arguments do not seem to be floats : {} , {}".format(left,right))
+            exit(-1)
+    else:
+        try:
+            defaults[dest] = str(int(left) + int(right))
+        except:
+            print("Error: The given arguments do not seem to be ints : {} , {}".format(left,right))
+            exit(-1)
+    return False,True # ready_to_yield, do_next_step
 def step_post_processing_steps(defaults,group,feed,torrent,args):
     torrent["current_processing_step"] = "post_processing_steps 0"
     #we are special because we changed the step so we do not want to increment it
@@ -417,6 +497,10 @@ available_processing_steps = {
     "increment_feed_var" : step_increment_feed_var,
     "increment_group_var" : step_increment_group_var,
     "increment_global_var" : step_increment_global_var,
+    "addition_torrent_var" : step_addition_torrent_var,
+    "addition_feed_var" : step_addition_feed_var,
+    "addition_group_var" : step_addition_group_var,
+    "addition_global_var" : step_addition_global_var,
     "post_processing_steps" : step_post_processing_steps,
     "processing_steps_variable" : step_processing_steps_variable,
     "set_label" : step_set_label,
