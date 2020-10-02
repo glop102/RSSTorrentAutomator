@@ -139,3 +139,5 @@ leftpad  | int [,char] | Makes the expanded variable longer with a minimum lengt
 rightpad | int [,char] | Makes the expanded variable longer with a minimum length of the int given. Optionally, you can also specify which character is used to make the string longer (defualt is space). This always put the extra characters on the right side of the string.
 lpad     | int [,char] | Same as leftpad
 rpad     | int [,char] | Same as rightpad
+replace  | string,string\* | Every 2 arguments given specify a pair. The first of the pair is what will be replace. The second of the pair is what it will be replaced with.
+sanitizeFilename | | A convience function that has a hardcoded string that it gives to replace so that filesystems do not complain about illegal characters.

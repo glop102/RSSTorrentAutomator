@@ -22,12 +22,29 @@ def mod_rpad(args,string):
         print("Error: string variable modification rightpad needs 1+ parameters")
         exit(-1)
     return string.ljust(length,padding)
+def mod_replace(args,string):
+    if len(args) % 2 != 0:
+        print("Error: string variable modification replace() needs an even number of parameters (ie 2 or 4 or 10)")
+        exit(-1)
+    #lets get the arguments into a sane view by making it a bunch of size 2 arrays of match+replace strings
+    replacePairs = zip(args[0::2],args[1::2])
+    for pair in replacePairs:
+        string = string.replace(pair[0],pair[1])
+    return string
+def mod_sanitizeFilename(args,string):
+    #we ignore the args because we have no settings for this at the moment
+    #lets just use the mod_replace with a hard coded replace string
+    return mod_replace(
+            ["/",":",  "|",":",  "\"",""],
+            string )
 
 string_modifications = {
     "lpad" : mod_lpad,
     "leftpad" : mod_lpad,
     "rpad" : mod_rpad,
-    "rightpad" : mod_rpad
+    "rightpad" : mod_rpad,
+    "replace" : mod_replace,
+    "sanitizeFilename" : mod_sanitizeFilename
 }
 
 def safe_parse_split(arguments,delim):

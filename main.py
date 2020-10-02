@@ -82,11 +82,13 @@ def update_torrents(defaults,groups,feeds,torrents):
     removal_list = []
     for torrent in torrents:
         group={"group_name":"DummyGroup"}
-        feed={"feed_url":torrent["feed_url"]}
-        if torrent["feed_url"] in feeds:
+        feed={"feed_url":"DummyFeedUrl"}
+        if "feed_url" in torrent and torrent["feed_url"] in feeds:
             feed = feeds[ torrent["feed_url"] ]
         if "group_name" in feed:
             group = groups[feed["group_name"]]
+        elif "group_name" in torrent:
+            group = groups[torrent["group_name"]]
 
         #Lets check if this torrent is new, and expand variables from the parrent sections
         if not "current_processing_step" in torrent:
