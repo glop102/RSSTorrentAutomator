@@ -124,7 +124,12 @@ processing_steps_variable | string | Switch to processing the step list in the v
 retrieve_torrent_name     |        | Gets the name of the torrent from the server and stores it in variable named "torrent_name"
 regex_parse               |string,string,string | Applies a regular expression to a variable and stores it in another variable. The order of arguments is (SourceVarName,RegularExpression,DestinationVarName), The source variable must exist, but the destination can be new.
 set_feed_var              | string,string | Save a value when processing a torrent to the feed that a torrent came from. First string is the variable name. Second string is the value to set. (eg set_feed_var(last_downloaded_epNum,%episode_num%) )
-branch_if_vars_equal      | string,string,string | It compares the values of two arguments and if they are the same, it will jump to the processing steps in the variable of the third argument. If a variable name does not exist, then it will not take the branch.
+branch_if_vars_equal      | string,string,string | It compares the values of two variabless and if they are the same, it will jump to the processing steps in the variable of the third argument. If a variable name does not exist, then it will not take the branch.
+branch_if_values_equal    | string,string,string | It compares the values of two strings and if they are the same, it will jump to the processing steps in the variable of the third argument
+get_file_info             | string | List some filepath info about a given file. It will add to the torrent state the following: absolute_filepath, absolute_folderpath, filename, basename, extension
+populate_next_file_info   | string | Given a folder, it will find some random file and then get the same information about it as get_file_info does. It also adds the the variable foundfile and sets it to either "true "or "false"
+rename_file               | string,string | Given a source file or folder, it will attempt to rename it to the destination string. Both must reference the location as this can move a file on the same file system
+move_file                 | string,string | Given a source file or folder, it will move it SAFELY to the new location, even across filesystems. This can rename the item during the move. If it is across filesystems, it will uses the downlaod thread to make the copy safely before deleting the original
 
 
 ### String Varaible Expansion

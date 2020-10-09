@@ -1,8 +1,9 @@
 import xmlrpc.client
 import re
 from time import sleep
-from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion
+from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion,queue_file_for_local_copy
 from variables import get_variable_value_cascaded,expand_string_variables,safe_parse_split
+import os
 
 #This is a global variable that holds our connection to rtorrent
 global server 
@@ -85,6 +86,21 @@ def __is_torrent_multifile(defaults,infohash):
 def __get_torrent_basepath(defaults,infohash):
     connect_to_server(defaults)
     return server.d.base_path(infohash)
+
+def __filepaths_will_be_on_same_filesystem(p1,p2):
+    #make sure it is absolute and sane for a starting point
+    #we rely on implicitly running into the root disk at some point which does not happen if it is a relative path
+    p1 = os.path.normpath(os.path.abspath(p1))
+    p2 = os.path.normpath(os.path.abspath(p2))
+    #find the largest segment of the path that already exists, which might end up being the root disk
+    while not os.path.exists(p1):
+        p1 = os.path.normpath( os.path.join(p1,"..") )
+    while not os.path.exists(p2):
+        p2 = os.path.normpath( os.path.join(p2,"..") )
+    #both paths are guarenteed to exist now so we can get what FS it will be on
+    if os.stat(p1).st_dev == os.stat(p2).st_dev:
+        return True
+    return False
 
 
 #==========================================================================
@@ -489,6 +505,170 @@ def step_branch_if_vars_equal(defaults,group,feed,torrent,args):
         pass
 
     return False,True # ready_to_yield, do_next_step
+def step_branch_if_values_equal(defaults,group,feed,torrent,args):
+    if not len(args) == 3:
+        print("Error: Three arguments must be given to set_feed_var (value,value,processing_steps_varname)")
+        exit(-1)
+    for x in [0,1,2]:
+        if args[x] == "":
+            print("Error: Var Name {} passed to set_feed_var is empty".format(x+1))
+            exit(-1)
+
+    v1v = args[0]
+    v2v = args[1]
+    stepsName = args[2]
+
+    try:
+        v1v = expand_string_variables(defaults,group,feed,torrent,v1v)
+
+        v2v = expand_string_variables(defaults,group,feed,torrent,v2v)
+        if v1v == v2v:
+            # special return becuase of auto-incrementing breaking the next steps
+            return step_processing_steps_variable(defaults,group,feed,torrent,[stepsName])
+    except:
+        pass
+
+    return False,True # ready_to_yield, do_next_step
+def step_get_file_info(defaults,group,feed,torrent,args):
+    # absolute_filepath
+    # absolute_folderpath
+    # filename
+    # basename
+    # extension
+    if not len(args) == 1:
+        print("Error: need a path as an argument for get_file_info (%path%)")
+        exit(-1)
+    if os.path.exists(args[0]):
+        torrent["absolute_filepath"] = os.path.abspath( os.path.realpath(args[0]) ) #https://stackoverflow.com/questions/37863476/why-would-one-use-both-os-path-abspath-and-os-path-realpath
+        torrent["absolute_folderpath"],
+        torrent["filename"] = os.path.split(torrent["absolute_filepath"])
+        torrent["basename"],
+        torrent["extension"] = os.path.splitext(torrent["filename"])
+    return False,True # ready_to_yield, do_next_step
+def step_populate_next_file_info(defaults,group,feed,torrent,args):
+    #gets the info of the first file it comes accros and puts it into the variables of the torrent
+    #it sets foundfile to "true" if there was something to find and "false" if there was nothing to find
+    if not len(args) == 1:
+        print("Error: need a path as an argument for populate_next_file_info (%path%)")
+        exit(-1)
+    for root,dirs,files in os.walk(args[0]):
+        if len(files) > 0:
+            torrent["foundfile"] = "true"
+            return step_get_file_info(defaults,group,feed,torrent,os.path.join(root,files[0]) )
+
+    # for loop found no file so there is nothing left - lets do cleanup
+    torrent["foundfile"] = "false"
+    del torrent["absolute_filepath"]
+    del torrent["absolute_folderpath"]
+    del torrent["filename"]
+    del torrent["basename"]
+    del torrent["extension"]
+    return False,True # ready_to_yield, do_next_step
+def step_rename_file(defaults,group,feed,torrent,args):
+    #renames a given file to the new name
+    #Warning : this is not intended to move files between different file systems
+    if not len(args) == 2:
+        print("Error: need to pass two arguments to rename_file (%oldName% , %newName%)")
+        print("    Note: not intended to move file accross different file systems")
+        exit(-1)
+    old = os.path.abspath( os.path.realpath( args[0] ) )
+    new = os.path.abspath( os.path.realpath( args[1] ) )
+    if not os.path.exists(old):
+        print("Error: Unable to find the source file for rename_file")
+        print("    "+old)
+        exit(-1)
+    if not __filepaths_will_be_on_same_filesystem(old,new):
+        print("Error: attempting to move a file between different filesystems with rename_file. Perhaps you mean to use move_file()?")
+        print("    oldName: "+old)
+        print("    newName: "+new)
+        exit(-1)
+    try:
+        os.renames(old,new)
+    except Exception as e:
+        print("Exception caught when attempting to rename a file in rename_file()")
+        print("    oldName: "+old)
+        print("    newName: "+new)
+        print(e)
+        exit(-1)
+    return False,True # ready_to_yield, do_next_step
+def step_move_file(defaults,group,feed,torrent,args):
+    #Note: if the source is a file, the destination will be assumed to be a filename if there is not a folder already there by that name
+    #if the source is a directory, the destination will always be assumed to be a folder
+    #Note: the arg parsing removes the trailing slash if the person wanted to specify a destination directory
+    if not len(args) == 2:
+        print("Error: need to pass two arguments to move_file (%oldName% , %newName%)")
+        exit(-1)
+    old = os.path.abspath( os.path.realpath( args[0] ) )
+    new = os.path.abspath( os.path.realpath( args[1] ) )
+    if not os.path.exists(old):
+        print("Error: Unable to find the source file for move_file")
+        print("    "+old)
+        exit(-1)
+    if __filepaths_will_be_on_same_filesystem(old,new):
+        try:
+            if os.path.exists(new) and os.path.isdir(new):
+                #handle if we want to shove it inside a folder but didn't care to change the filename
+                new = os.path.join(new, s.path.basename(old) )
+            os.renames(old,new)
+        except Exception as e:
+            print("Exception caught when attempting to rename a file in move_file() (same filesystem assumed)")
+            print("    oldName: "+old)
+            print("    newName: "+new)
+            print(e)
+            exit(-1)
+        torrent["current_file_move_status"] = "files_moved"
+    else:
+        print("Not implemented yet - need to add to 'download manager' to do the copy operation")
+        exit(-1)
+
+        if not "current_file_move_status" in torrent or torrent["current_file_move_status"] == "files_moved":
+            #The files to be moved across to a different file system are not already queued, so we need to add them
+            #to the second thread for the copy+delete operation.
+            #We can either have been handed a single file or a whole directory that needs to be moved
+            source_files = []
+            dest_files = []
+
+            if os.path.isfile(old):
+                source_files = [old]
+                if os.path.exists(new) and os.path.isdir(new):
+                    dest_files = [os.path.join( new, os.path.basename(old) )]
+                else:
+                    dest_files = [new] #overwrite the file if required
+            elif os.path.isdir(old):
+                #we need to list all the files in the source folder and then preserve their
+                #name and relative location during the copy
+                source_files = [ os.path.abspath( os.path.realpath( os.path.join(root,f) ) ) for root,dirs,files in os.walk(old) for f in files ]
+                relative_paths = [ path.replace(old,"") for path in source_files ]
+                dest_files = [ os.path.join(new,path) for path in relative_paths ]
+            else:
+                print("Error: passed source is neither a file nor a directory")
+                print("    "+old)
+                exit(-1)
+
+            for source_file,dest_file in zip(source_files,dest_files):
+                queue_file_for_local_copy(
+                    torrent["infohash"],
+                    source_file,
+                    dest_file
+                    )
+            torrent["current_file_move_status"] = "queued_files_for_move"
+            return True,False # ready_to_yield, do_next_step
+        elif torrent["current_file_move_status"] == "queued_files_for_move":
+            if check_if_torrent_has_files_queued(torrent["infohash"]):
+                return True,False # ready_to_yield, do_next_step
+            else:
+                #it is not a move if the source files stick around - delete them
+                if os.path.isdir(old):
+                    shutil.rmtree(old)
+                elif os.path.isfile(old):
+                    os.remove(old)
+                torrent["current_file_move_status"] = "files_moved"
+                return False,True # ready_to_yield, do_next_step
+        else:
+            print("Error: Unknown state for current_file_move_status in move_file()")
+            exit(-1)
+
+    return False,True # ready_to_yield, do_next_step
 
 
 available_processing_steps = {
@@ -514,7 +694,12 @@ available_processing_steps = {
     "retrieve_torrent_name" : step_retrieve_torrent_name,
     "regex_parse" : step_regex_parse,
     "set_feed_var" : step_set_feed_var,
-    "branch_if_vars_equal" : step_branch_if_vars_equal
+    "branch_if_vars_equal" : step_branch_if_vars_equal,
+    "branch_if_values_equal" : step_branch_if_values_equal,
+    "get_file_info" : step_get_file_info,
+    "populate_next_file_info" : step_populate_next_file_info,
+    "rename_file" : step_rename_file,
+    "move_file" : step_move_file
 }
 
 #==========================================================================

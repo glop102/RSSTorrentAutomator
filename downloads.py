@@ -1,6 +1,7 @@
 import paramiko
 import os.path
 import time
+from io import open,SEEK_END,SEEK_SET
 from pathlib import Path
 from threading import Thread,Lock,Condition
 
@@ -20,7 +21,7 @@ def __periodic_status_print(bytes_done,bytes_total):
     if bytes_done == bytes_total:
         speed_text = __download_speed_text(bytes_total,now-__start_time)
         print("\tAverage Speed "+speed_text)
-    elif (now - __prev_time) < 5: #print every 5 seconds
+    elif (now - __prev_time) < 5: #only print every 5 seconds
         # Do not spam the logs with extra prints
         return
     else:
@@ -59,6 +60,26 @@ def __download_single_file(remote_loc,local_loc):
     __prev_bytes = 0
     sftp.get(remote_loc,local_loc,callback=__periodic_status_print)
     print("\tFile Download Complete")
+def __local_copy_single_file(source_loc,dest_loc):
+    __make_folder_parent(dest_loc)
+    print("Starting File Copy : "+dest_loc)
+    global __start_time,__prev_time,__prev_bytes
+    __start_time = time.time()
+    __prev_time = __start_time
+    __prev_bytes = 0
+    buf_size = 128*1024
+    written_bytes = 0
+    src = open(source_loc,"rb")
+    dst = open(dest_loc,"wb",buffering=0)
+    total_bytes = src.seek(0,SEEK_END)
+    src.seek(0,SEEK_SET) #rewind
+    while True:
+        tmp = src.read(buf_size)
+        if not tmp : break
+        dst.write(tmp)
+        written_bytes += len(tmp)
+        __periodic_status_print(written_bytes,total_bytes)
+    print("\tFile Copy Complete")
 def __make_folder_parent(loc):
     #Make sure the folder exists, and touch the file
     p = Path(loc)
@@ -97,6 +118,9 @@ def add_item_to_queue(item,tag):
 def get_next_item_from_queue():
     with queue_lock:
         return items[0]
+def get_next_tag_from_queue():
+    with queue_lock:
+        return tags[0]
 def remove_next_item_from_queue():
     with queue_lock:
         items.pop(0)
@@ -162,9 +186,12 @@ def main_thread_function():
     try:
         while downloads_keep_processing:
             remote_loc,local_loc = get_next_item_from_queue()
+            protocol = get_next_tag_from_queue().split(":")[0]
             if local_loc == "DELETE_RECURSIVLY":
                 __delete_path(remote_loc)
-            else:
+            elif protocol == "local-copy":
+                __local_copy_single_file(remote_loc,local_loc)
+            else: #assume protocol == sftp
                 __download_single_file(remote_loc,local_loc)
             remove_next_item_from_queue()
             save_queue_to_file()
@@ -216,7 +243,16 @@ def queue_file_for_download(torrent_id,remote_loc,local_loc):
     Files queued in this manner will be added to a conf file so that when
     the program starts again, it will resume downloading.
     """
-    add_item_to_queue([remote_loc,local_loc],torrent_id)
+    add_item_to_queue([remote_loc,local_loc],"sftp:"+torrent_id)
+    __restart_thread()
+def queue_file_for_local_copy(torrent_id,source_loc,dest_loc):
+    """
+    This will add the file to a list of files that are to be moved.
+    This runs as a seperate thread so that other operations can happen.
+    Files queued in this manner will be added to a conf file so that when
+    the program starts again, it will resume downloading.
+    """
+    add_item_to_queue([source_loc,dest_loc],"local-copy:"+torrent_id)
     __restart_thread()
 def queue_remote_path_for_deletion(remote_loc):
     """
@@ -247,7 +283,7 @@ def check_if_torrent_has_files_queued(torrent_id):
     Returns True or False. This lets you know if there are any files in the queue
     so that you can check if it is safe to delete a torrent.
     """
-    return check_if_tag_in_queue(torrent_id)
+    return check_if_tag_in_queue("sftp:"+torrent_id) or check_if_tag_in_queue("local-copy:"+torrent_id)
 
 
 
