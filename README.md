@@ -73,6 +73,8 @@ server_url                | Defaults | The url to use for connecting to rTorrent
 download_host             | Defualts | The hostname for conencting the sftp downloader to. This can have a port also specified with :port on the end of the hostname. Do not include a protocol specifier.
 download_credentials      | Defualts | Similar to the credentials variable, but is for conencting to the sftp server.
 download_credentials_type | Defaults | Similar to the credentials_type variable, but is for connecting to the sftp server.
+feed_check_period         | Defaults | How many seconds to wait between checking the rss feeds (30 minutes default)
+torrent_check_period      | Defaults | How many seconds to wait between checking the currently tracked torrents (4 minutes default)
 processing_steps          | Any      | The steps that are taken for each torrent. Refer to the table of processing steps below. It has default processing steps if not specified by the user in the Defaults section.
 post_processing_steps     | Any      | Steps that are taken for a torrent if the post_processing_steps() function is used. Has a default of simply stop_tracking_torrent()
 download_destination      | Defaults | This variable is used in the defualt processing_steps. Default value of "./"

@@ -5,23 +5,13 @@ from settings import parse_torrents_status_file, save_torrents_to_file
 from feeds import check_for_new_links,check_if_feed_marked_for_deletion
 from torrents import expand_new_torrent_object,process_torrent
 from downloads import setup_downloads_thread,stop_downloads_thread
-from time import sleep
+from threading import Event
 
-global main_loop_conditional
-main_loop_conditional=True
+#https://stackoverflow.com/a/46346184/3177712
+main_loop_conditional = Event()
 def signal_program_shutdown(sig,frame):
-    print("Caught SIGINT")
-    global main_loop_conditional
-    main_loop_conditional=False
-
-def main_loop_sleep(defaults):
-    delay_time = 30*60 #30 minutes default period
-    try:
-        delay_time = int(defaults["feed_check_period"])
-    except: pass
-    for x in range(int(delay_time/10)):
-        if not main_loop_conditional: raise AssertionError
-        sleep(10)
+    print("Caught SIGTERM")
+    main_loop_conditional.set()
 
 def parse_configurations():
     defaults = {} #just a list of vars:values
@@ -47,6 +37,14 @@ def parse_configurations():
         print("Unable to open current_torrents.conf - likely no torrents being watched right now")
 
     return defaults,groups,feeds,torrents
+def save_configurations(defaults,groups,feeds,torrents):
+    sett = open("rss_feed.conf","w")
+    save_settings_to_file(sett,defaults,groups,feeds)
+    sett.close()
+
+    sett = open("current_torrents.conf","w")
+    save_torrents_to_file(sett,torrents)
+    sett.close()
 
 def update_feeds(defaults,groups,feeds,torrents):
     removal_list = []
@@ -73,13 +71,11 @@ def update_feeds(defaults,groups,feeds,torrents):
     for feed_url in removal_list:
         del feeds[feed_url]
     if config_update:
-        sett = open("rss_feed.conf","w")
-        save_settings_to_file(sett,defaults,groups,feeds)
-        sett.close()
+        save_configurations(defaults,groups,feeds,torrents)
 
 def update_torrents(defaults,groups,feeds,torrents):
     #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
-    removal_list = []
+    config_update = False
     for torrent in torrents:
         group={"group_name":"DummyGroup"}
         feed={"feed_url":"DummyFeedUrl"}
@@ -93,32 +89,21 @@ def update_torrents(defaults,groups,feeds,torrents):
         #Lets check if this torrent is new, and expand variables from the parrent sections
         if not "current_processing_step" in torrent:
             expand_new_torrent_object(defaults,group,feed,torrent)
+            config_update = True
+        starting_processing_step = torrent["current_processing_step"]
 
         #Now lets run the processing steps on the torrent
         process_torrent(defaults,group,feed,torrent)
-        if torrent["current_processing_step"] == "ready_for_removal 0":
-            removal_list.append(torrents.index(torrent))
 
-    # reversed so we delete items from the end to front to not mess up indices
-    removal_list.reverse()
-    for idx in removal_list:
-        del torrents[idx]
+        if starting_processing_step != torrent["current_processing_step"]:
+            config_update = True
 
-    #save the torrents settings if there are any or if we just delted the last torrent
-    if len(torrents) > 0 or len(removal_list) > 0:
-        sett = open("current_torrents.conf","w")
-        save_torrents_to_file(sett,torrents)
-        sett.close()
+    # remove the torrents that are done processing
+    torrents[:] = [torrent for torrent in torrents if torrent["current_processing_step"] != "ready_for_removal 0"]
 
+    if config_update:
+        save_configurations(defaults,groups,feeds,torrents)
 
-def save_configurations(defaults,groups,feeds,torrents):
-    sett = open("rss_feed.conf","w")
-    save_settings_to_file(sett,defaults,groups,feeds)
-    sett.close()
-
-    sett = open("current_torrents.conf","w")
-    save_torrents_to_file(sett,torrents)
-    sett.close()
 
 def main():
     try:
@@ -127,16 +112,35 @@ def main():
         #lets get the file downloads going
         setup_downloads_thread(defaults)
 
-        while True:
-            #Now we have sane settings, so lets update our RSS feeds
-            update_feeds(defaults,groups,feeds,torrents)
+        feed_check_period = 30*60 #30 minutes default
+        torrent_check_period = 4*60 #4 minutes default
+        try: feed_check_period = int(defaults["feed_check_period"])
+        except: pass
+        try: torrent_check_period = int(defaults["torrent_check_period"])
+        except: pass
+
+        feed_delay_counter = 0
+        torrent_delay_counter = 0
+        while not main_loop_conditional.is_set():
+            #first check the feeds to find any new torrents
+            if feed_delay_counter <= 0:
+                feed_delay_counter = feed_check_period
+                update_feeds(defaults,groups,feeds,torrents)
 
             #Now that we have checked all our feeds, lets tend to our torrents
             #This includes starting the newly added torrents from the feeds
-            update_torrents(defaults,groups,feeds,torrents)
+            if torrent_delay_counter <= 0:
+                torrent_delay_counter = torrent_check_period
+                update_torrents(defaults,groups,feeds,torrents)
+            if len(torrents) == 0:
+                #optimization - do not bother waking up and checking torrents if we have none
+                torrent_delay_counter = feed_delay_counter
 
-            # Since we made the rounds, lets rest for a short while
-            main_loop_sleep(defaults)
+            sleep_amount = min ( feed_delay_counter , torrent_delay_counter )
+            feed_delay_counter = feed_delay_counter - sleep_amount
+            torrent_delay_counter = torrent_delay_counter - sleep_amount
+            main_loop_conditional.wait( sleep_amount )
+
     except KeyboardInterrupt:
         print("Caught Keyboard Interupt")
     except AssertionError: pass #just catching SIGTERM
