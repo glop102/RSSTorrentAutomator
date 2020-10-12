@@ -102,41 +102,6 @@ def __filepaths_will_be_on_same_filesystem(p1,p2):
         return True
     return False
 
-
-#==========================================================================
-#  Torrent Expansion Functions
-#==========================================================================
-
-def __expand_processing_steps(defaults,group,feed,torrent,var_name):
-    steps = safe_parse_split(torrent[var_name]," ")
-    need_expansion = []
-    for step in steps:
-        if "processing_steps_variable" in step:
-            #grab the variable name from the function call
-            lidx = step.index("(")
-            ridx = step.rindex(")")
-            new_var = step[lidx+1:ridx]
-            new_steps = get_variable_value_cascaded(defaults,group,feed,torrent,new_var)
-
-            #skip any steps that we have already copied
-            if new_var in torrent:
-                continue
-
-            torrent[new_var] = new_steps
-            need_expansion.append(new_var)
-
-    for proc in need_expansion:
-        __expand_processing_steps(defaults,group,feed,torrent,proc)
-def expand_processing_steps(defaults,group,feed,torrent):
-    #Lets expand the default processing steps
-    __expand_processing_steps(defaults,group,feed,torrent,"processing_steps")
-
-    steps = safe_parse_split(torrent["processing_steps"]," ")
-    if "post_processing_steps()" in steps:
-        torrent["post_processing_steps"] = get_variable_value_cascaded(defaults,group,feed,torrent,"post_processing_steps")
-        #Lets expand this extra case of processing steps
-        __expand_processing_steps(defaults,group,feed,torrent,"post_processing_steps")
-
 #==========================================================================
 #  Processing Functions
 #==========================================================================
@@ -461,9 +426,11 @@ def step_regex_parse(defaults,group,feed,torrent,args):
     if search == None:
         #found no match
         torrent[args[2]] = ""
+        torrent["regex_matched"] = "false"
     else:
         #found a match
         torrent[args[2]] = search[0]
+        torrent["regex_matched"] = "true"
     return False,True # ready_to_yield, do_next_step
 def step_set_feed_var(defaults,group,feed,torrent,args):
     if len(args) < 2:
@@ -480,11 +447,11 @@ def step_set_feed_var(defaults,group,feed,torrent,args):
     return False,True # ready_to_yield, do_next_step
 def step_branch_if_vars_equal(defaults,group,feed,torrent,args):
     if not len(args) == 3:
-        print("Error: Three arguments must be given to set_feed_var (var_name,var_name,processing_steps_varname)")
+        print("Error: Three arguments must be given to branch_if_vars_equal (var_name,var_name,processing_steps_varname)")
         exit(-1)
     for x in [0,1,2]:
         if args[x] == "":
-            print("Error: Var Name {} passed to set_feed_var is empty".format(x+1))
+            print("Error: Var Name {} passed to branch_if_vars_equal is empty".format(x+1))
             exit(-1)
 
     v1n = args[0]
@@ -507,11 +474,11 @@ def step_branch_if_vars_equal(defaults,group,feed,torrent,args):
     return False,True # ready_to_yield, do_next_step
 def step_branch_if_values_equal(defaults,group,feed,torrent,args):
     if not len(args) == 3:
-        print("Error: Three arguments must be given to set_feed_var (value,value,processing_steps_varname)")
+        print("Error: Three arguments must be given to branch_if_values_equal (value,value,processing_steps_varname)")
         exit(-1)
     for x in [0,1,2]:
         if args[x] == "":
-            print("Error: Var Name {} passed to set_feed_var is empty".format(x+1))
+            print("Error: Var Name {} passed to branch_if_values_equal is empty".format(x+1))
             exit(-1)
 
     v1v = args[0]
@@ -540,10 +507,11 @@ def step_get_file_info(defaults,group,feed,torrent,args):
         exit(-1)
     if os.path.exists(args[0]):
         torrent["absolute_filepath"] = os.path.abspath( os.path.realpath(args[0]) ) #https://stackoverflow.com/questions/37863476/why-would-one-use-both-os-path-abspath-and-os-path-realpath
-        torrent["absolute_folderpath"],
-        torrent["filename"] = os.path.split(torrent["absolute_filepath"])
-        torrent["basename"],
-        torrent["extension"] = os.path.splitext(torrent["filename"])
+        torrent["absolute_folderpath"],torrent["filename"] = os.path.split(torrent["absolute_filepath"])
+        torrent["basename"],torrent["extension"] = os.path.splitext(torrent["filename"])
+        #quick cleanup to remove the period on the front of file extensions
+        if len(torrent["extension"]) > 0 and torrent["extension"][0] == '.':
+            torrent["extension"] = torrent["extension"][1:]
     return False,True # ready_to_yield, do_next_step
 def step_populate_next_file_info(defaults,group,feed,torrent,args):
     #gets the info of the first file it comes accros and puts it into the variables of the torrent
@@ -554,7 +522,7 @@ def step_populate_next_file_info(defaults,group,feed,torrent,args):
     for root,dirs,files in os.walk(args[0]):
         if len(files) > 0:
             torrent["foundfile"] = "true"
-            return step_get_file_info(defaults,group,feed,torrent,os.path.join(root,files[0]) )
+            return step_get_file_info(defaults,group,feed,torrent,[os.path.join(root,files[0])] )
 
     # for loop found no file so there is nothing left - lets do cleanup
     torrent["foundfile"] = "false"
@@ -715,21 +683,6 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
         exit(-1)
     if "title" in torrent:
         print("Expanding new torrent : "+torrent["title"])
-
-    #parse through processing_steps and add all sub_process variables
-    expand_processing_steps(defaults,group,feed,torrent)
-
-    #parse through all variables and do a string replace
-    #do NOT save the result of the parsing back to the variable, we are only parsing to force a copy of all the variables to be available to the torrent
-    #the expansion code itself copies in missing keys to the torrent object if they are missing, but ina non-expanded form
-    try:
-        keys = [k for k in torrent.keys()]
-        for key in keys:
-            if not key == "feed_url":
-                expand_string_variables(defaults,group,feed,torrent,torrent[key])
-    except KeyError:
-        print("Unable to expand torrent - exiting...")
-        exit(-1)
 
     #we do not check if it already exists because we assume this is a new torrent
     torrent["current_processing_step"] = "processing_steps 0"

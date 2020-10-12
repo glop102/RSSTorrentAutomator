@@ -93,9 +93,6 @@ def __expand_single_string_variable(defaults,group,feed,torrent,string):
 
     #get the initial value that we will modify and then return
     val = get_variable_value_cascaded(defaults,group,feed,torrent,name)
-    if not name in torrent:
-        #make sure the torrent has all variables it needs in case a parent is deleted
-        torrent[name] = val
 
     for mod in sections:
         val = __modify_string_value(val,mod)
