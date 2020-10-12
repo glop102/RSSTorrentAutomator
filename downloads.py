@@ -187,6 +187,7 @@ def main_thread_function():
         while downloads_keep_processing:
             remote_loc,local_loc = get_next_item_from_queue()
             protocol = get_next_tag_from_queue().split(":")[0]
+            print("Download Queue Length : {}".format(len(items)) )
             if local_loc == "DELETE_RECURSIVLY":
                 __delete_path(remote_loc)
             elif protocol == "local-copy":
