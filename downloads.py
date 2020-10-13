@@ -99,8 +99,10 @@ def __recursive_delete(path):
 def __delete_path(path):
     try: #assume it is a file
         sftp.remove(path)
+        print("Cleaned up remote location : {}".format(path) )
     except IOError: #actually a directory
         __recursive_delete(path)
+        print("Cleaned up local location : {}".format(path) )
 
 #========================================================================================
 #  Download Queue Functions
