@@ -50,9 +50,10 @@ string_modifications = {
 def safe_parse_split(arguments,delim):
     output = [""]
     idx=0
+    escape_whitelist = ["\\",",","%"]
     while idx < len(arguments):
         c = arguments[idx]
-        if c == "\\":
+        if c == "\\" and arguments[idx+1] in escape_whitelist:
             idx = idx+1
             output[-1] = output[-1]+arguments[idx]
         elif c == delim:
