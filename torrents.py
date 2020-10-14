@@ -330,13 +330,17 @@ def step_wait_for_ratio(defaults,group,feed,torrent,args):
         exit(-1)
     try:
         wanted = float(args[0])
+    except:
+        print("Error: wait_for_ratio requires a number - '{}' does not parse as a number".format(args[0]))
+        exit(-1)
+    try:
         has = __get_torrent_ratio(defaults,torrent["infohash"])
         if wanted > has:
             return True,False # ready_to_yield, do_next_step
         else:
             return False,True # ready_to_yield, do_next_step
     except:
-        print("Error: wait_for_ratio requires a number")
+        print("Error: wait_for_ratio - unable to get the torrent ratio")
         exit(-1)
 def step_download_files(defaults,group,feed,torrent,args):
     if len(args) != 1 or args[0] == "":
