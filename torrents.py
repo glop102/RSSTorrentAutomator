@@ -1,5 +1,9 @@
 import xmlrpc.client
-import re
+try:
+    import regex as re
+except:
+    print("Warn: unable to import module 'regex'\n      some regex patterns may not be avaialable")
+    import re
 from time import sleep
 from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion,queue_file_for_local_copy
 from variables import get_variable_value_cascaded,expand_string_variables,safe_parse_split

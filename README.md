@@ -11,11 +11,19 @@ It is a little bit of a mess due to absolutly 0 planning and kindof recomend usi
 
 python3.4+
 
+### Ubuntu
+
+* python3-feedparser
+* python3-paramiko
+* python3-regex
+(xmlrpc seems to be shipped by default - contact the dev if you have trouble with this module)
+
 ### Gentoo
 
-* py-xmlrpc
-* feedparser
-* paramiko
+* dev-python/py-xmlrpc
+* dev-python/feedparser
+* dev-python/paramiko
+* dev-python/regex
 
 ## Basic Setup
 
