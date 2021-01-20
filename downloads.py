@@ -20,7 +20,11 @@ def __periodic_status_print(bytes_done,bytes_total):
     global __start_time,__prev_time,__prev_bytes
     if bytes_done == bytes_total:
         speed_text = __download_speed_text(bytes_total,now-__start_time)
-        print("\tAverage Speed "+speed_text)
+        print("\tAverage Speed   "+speed_text.rjust(10))
+    elif __prev_bytes == -1:
+        print("\t         Filesize {}".format(__bytes_count_human_readable(bytes_total)) )
+        __prev_bytes = 0
+        return
     elif (now - __prev_time) < 5: #only print every 5 seconds
         # Do not spam the logs with extra prints
         return
@@ -33,31 +37,34 @@ def __periodic_status_print(bytes_done,bytes_total):
         elapsed_time = now - __prev_time
         elapsed_bytes = bytes_done - __prev_bytes
         speed_text = __download_speed_text(elapsed_bytes,elapsed_time)
-        print("\t{}%    {}".format(percentage,speed_text))
+        print("\t{}%         {}".format(percentage,speed_text.rjust(10)))
         __prev_time = now
         __prev_bytes = bytes_done
+def __bytes_count_human_readable(nbytes):
+    ntype = " B"
+    if nbytes < 1000: pass #really slow bytes per second
+    elif nbytes < 1000*1000:
+        ntype = "KB"
+        nbytes = nbytes / 1000.0
+    elif nbytes < 1000*1000*1000:
+        ntype = "MB"
+        nbytes = nbytes / (1000*1000.0)
+    else:
+        ntype = "GB"
+        nbytes = nbytes / (1000*1000*1000.0)
+    nbytes = int(nbytes*10.0)/10.0 # limit to 1 decimal point
+    return str(nbytes)+" "+ntype
 def __download_speed_text(bytes_done,elapsed_time):
     speed = float(bytes_done) / elapsed_time
-    speed_type = " B/s"
-    if speed < 1000: pass #really slow bytes per second
-    elif speed < 1000*1000:
-        speed_type = "KB/s"
-        speed = speed / 1000.0
-    elif speed < 1000*1000*1000:
-        speed_type = "MB/s"
-        speed = speed / (1000*1000.0)
-    else:
-        speed_type = "GB/s"
-        speed = speed / (1000*1000*1000.0)
-    speed = int(speed*10.0)/10.0 # limit to 1 decimalpoint
-    return str(speed).rjust(7) + " " + speed_type
+    text = __bytes_count_human_readable(speed)
+    return str(text) + "/s"
 def __download_single_file(remote_loc,local_loc):
     __make_folder_parent(local_loc)
     print("Starting File Download : "+local_loc)
     global __start_time,__prev_time,__prev_bytes
     __start_time = time.time()
     __prev_time = __start_time
-    __prev_bytes = 0
+    __prev_bytes = -1
     sftp.get(remote_loc,local_loc,callback=__periodic_status_print)
     print("\tFile Download Complete")
 def __local_copy_single_file(source_loc,dest_loc):
@@ -66,7 +73,7 @@ def __local_copy_single_file(source_loc,dest_loc):
     global __start_time,__prev_time,__prev_bytes
     __start_time = time.time()
     __prev_time = __start_time
-    __prev_bytes = 0
+    __prev_bytes = -1
     buf_size = 128*1024
     written_bytes = 0
     src = open(source_loc,"rb")
@@ -130,6 +137,9 @@ def remove_next_item_from_queue():
 def check_if_tag_in_queue(tag):
     with queue_lock:
         return tag in tags
+def count_tag_in_queue(tag):
+    with queue_lock:
+        return tags.count(tag)
 def add_item_to_front_of_queue(item,tag,pos=0):
     with queue_lock:
         pos = min(pos,len(items))
@@ -188,8 +198,10 @@ def main_thread_function():
     try:
         while downloads_keep_processing:
             remote_loc,local_loc = get_next_item_from_queue()
-            protocol = get_next_tag_from_queue().split(":")[0]
-            print("Download Queue Length : {}".format(len(items)) )
+            tag = get_next_tag_from_queue()
+            similar_items_left = count_tag_in_queue(tag)
+            protocol = tag.split(":",1)[0]
+            print("Download Queue Length : Similar-{} Total-{}".format(similar_items_left,len(items)) )
             if local_loc == "DELETE_RECURSIVLY":
                 __delete_path(remote_loc)
             elif protocol == "local-copy":
