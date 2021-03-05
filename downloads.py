@@ -3,7 +3,7 @@ import os.path
 import time
 from io import open,SEEK_END,SEEK_SET
 from pathlib import Path
-from threading import Thread,Lock,Condition
+from threading import Thread,Lock,Event
 
 global sftp,sftp_transport
 sftp_transport = None
@@ -111,6 +111,28 @@ def __delete_path(path):
         __recursive_delete(path)
         print("Cleaned up local location : {}".format(path) )
 
+def __setup_sftp():
+    global sftp_transport,sftp
+    try:
+        sftp_transport = paramiko.Transport((host, port))
+        sftp_transport.connect(username=username, password=password)
+        sftp = paramiko.SFTPClient.from_transport(sftp_transport)
+        return True
+    except Exception as e:
+        print(e)
+        print("Warning: Unable to connect sftp client to remote server")
+        sftp_transport = None
+        sftp = None
+        return False
+def __close_sftp():
+    global sftp_transport,sftp
+    if sftp is not None:
+        sftp.close()
+        sftp = None
+    if sftp_transport is not None:
+        sftp_transport.close()
+        sftp_transport = None
+
 #========================================================================================
 #  Download Queue Functions
 #========================================================================================
@@ -173,9 +195,9 @@ def load_queue_from_file():
 #========================================================================================
 #  AutoRun Thread Functions
 #========================================================================================
-global download_thread,downloads_keep_processing
+global download_thread,downloads_stop_flag
 download_thread = None
-downloads_keep_processing = True
+downloads_stop_flag = Event()
 
 def main_thread_function():
     """
@@ -183,20 +205,13 @@ def main_thread_function():
     This is a simple loop that pops an item from the queue and then downloads the file.
     It continues the loop until it runs out of items in the queue, then exits.
     """
-    global sftp_transport,sftp
-    try:
-        sftp_transport = paramiko.Transport((host, port))
-        sftp_transport.connect(username=username, password=password)
-        sftp = paramiko.SFTPClient.from_transport(sftp_transport)
-    except Exception as e:
-        print(e)
-        print("Warning: Unable to connect sftp client to remote server")
-        sftp_transport = None
-        sftp = None
-        return
 
     try:
-        while downloads_keep_processing:
+        while not downloads_stop_flag.is_set():
+            if not __setup_sftp():
+                print("Download thread unable to contact server, trying again in 30 seconds")
+                downloads_stop_flag.wait(30)
+                continue
             remote_loc,local_loc = get_next_item_from_queue()
             tag = get_next_tag_from_queue()
             similar_items_left = count_tag_in_queue(tag)
@@ -210,19 +225,18 @@ def main_thread_function():
                 __download_single_file(remote_loc,local_loc)
             remove_next_item_from_queue()
             save_queue_to_file()
+            
+            __close_sftp()
 
-        sftp.close()
-        sftp_transport = None
-        sftp = None
     except IndexError:
         #print("Download Queue Now Empty")
         pass
     except AssertionError:
         print("\nDownload Daemon exiting...")
 def __restart_thread():
-    global download_thread,downloads_keep_processing
+    global download_thread,downloads_stop_flag
     if download_thread == None or not download_thread.is_alive():
-        downloads_keep_processing = True
+        downloads_stop_flag.clear()
         download_thread = Thread(target=main_thread_function)
         download_thread.daemon = True
         download_thread.start()
@@ -288,8 +302,8 @@ def stop_downloads_thread():
     """
     if not download_thread == None or download_thread.is_alive():
         #stop the ongoing downloads in the middle of downloading
-        global downloads_keep_processing,__current_download_kill
-        downloads_keep_processing = False
+        global downloads_stop_flag
+        downloads_stop_flag.set()
         #download_thread.join() #uncomment if you want downloads to finish before exiting
     save_queue_to_file()
 
