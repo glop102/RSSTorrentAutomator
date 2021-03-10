@@ -106,10 +106,10 @@ def __recursive_delete(path):
 def __delete_path(path):
     try: #assume it is a file
         sftp.remove(path)
-        print("Cleaned up remote location : {}".format(path) )
+        print("Cleaned up remote file : {}".format(path) )
     except IOError: #actually a directory
         __recursive_delete(path)
-        print("Cleaned up local location : {}".format(path) )
+        print("Cleaned up remote folder : {}".format(path) )
 
 def __setup_sftp():
     global sftp_transport,sftp
