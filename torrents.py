@@ -37,19 +37,15 @@ def __add_torrent_to_rtorrent(defaults,url):
     """Give a list of urls or magnet links and we will ask rtorrent to add and start it. We return the torrent hash that rtorrent uses"""
     connect_to_server(defaults)
     orig_hashes = server.download_list()
-    new_hashes = orig_hashes
+    new_hashes = []
     #server.load.normal("",url)
     server.load.start("",url)
-    while len(orig_hashes) == len(new_hashes):
-        sleep(0.25)
-        new_hashes = server.download_list()
-    if len(new_hashes) - len(orig_hashes) != 1:
-        raise Exception("Error: more than 1 new hash found when adding URL : {}".format(url))
-    #lets find the hash that is not in the original list
-    for new in new_hashes:
-        if not new in orig_hashes:
-            return new
-    raise Exception("Error: new hash for torrent not found : {}".format(url))
+    while len(new_hashes) == 0:
+        sleep(0.5)
+        new_hashes = [h for h in server.download_list() if not h in orig_hashes]
+    if len(new_hashes) != 1:
+        raise Exception("Error: more than 1 new hash found when adding URL : {}\n{}".format(url, new_hashes))
+    return new_hashes[0]
 def __check_if_torrent_complete(defaults,infohash):
     """Returns True or False"""
     connect_to_server(defaults)
