@@ -219,7 +219,7 @@ def settings_final_sanity_check(defaults,groups,feeds):
 #=================================================================
 
 def save_settings_to_file(sett,defaults,groups,feeds):
-    print("Saving Settings to File...")
+    #print("Saving Settings to File...")
     for key in defaults:
         if key == "credentials" and "credentials_type" in defaults and defaults["credentials_type"] == "netrc": continue
         if key == "download_credentials" and "download_credentials_type" in defaults and defaults["download_credentials_type"] == "netrc": continue
@@ -238,7 +238,7 @@ def save_settings_to_file(sett,defaults,groups,feeds):
             sett.write("{} : {}\n".format(key,feed[key]) )
         sett.write("\n")
 def save_torrents_to_file(sett,torrents):
-    print("Saving torrent status to file...")
+    #print("Saving torrent status to file...")
     for tor in torrents:
         sett.write("=====Torrent\n")
         for key in tor:

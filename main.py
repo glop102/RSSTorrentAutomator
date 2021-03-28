@@ -89,19 +89,19 @@ def update_torrents(defaults,groups,feeds,torrents):
         #Lets check if this torrent is new, and expand variables from the parrent sections
         if not "current_processing_step" in torrent:
             expand_new_torrent_object(defaults,group,feed,torrent)
-            config_update = True
+            save_configurations(defaults,groups,feeds,torrents)
         starting_processing_step = torrent["current_processing_step"]
 
         #Now lets run the processing steps on the torrent
         process_torrent(defaults,group,feed,torrent)
 
         if starting_processing_step != torrent["current_processing_step"]:
-            config_update = True
+            save_configurations(defaults,groups,feeds,torrents)
 
-    # remove the torrents that are done processing
+    # remove the torrents that are done processing    
+    before = len(torrents)
     torrents[:] = [torrent for torrent in torrents if torrent["current_processing_step"] != "ready_for_removal 0"]
-
-    if config_update:
+    if before != len(torrents):
         save_configurations(defaults,groups,feeds,torrents)
 
 
