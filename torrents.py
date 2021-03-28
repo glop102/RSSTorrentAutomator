@@ -353,6 +353,8 @@ def step_download_files(defaults,group,feed,torrent,args):
         print("Error: download_files requires a path to save to")
         exit(-1)
     if not "current_file_download_status" in torrent:
+        try: print("Download Queueing Torrent Files : "+torrent["title"])
+        except: print("Download Queueing Torrent Files : "+torrent["infohash"])
         remote_file_paths = __get_torrent_files_abs_paths(defaults,torrent["infohash"])
         local_base_dir = args[0]
         if len(remote_file_paths) == 1:
@@ -371,6 +373,8 @@ def step_download_files(defaults,group,feed,torrent,args):
         if check_if_torrent_has_files_queued(torrent["infohash"]):
             return True,False # ready_to_yield, do_next_step
         else:
+            try: print("Torrent File Download Complete : "+torrent["title"])
+            except: print("Torrent File Download Complete : "+torrent["infohash"])
             torrent["current_file_download_status"] = "files_downloaded"
             return False,True # ready_to_yield, do_next_step
     else:
@@ -381,6 +385,8 @@ def step_download_files_into_folder(defaults,group,feed,torrent,args):
         print("Error: download_files requires a path to save to")
         exit(-1)
     if not "current_file_download_status" in torrent:
+        try: print("Download Queueing Torrent Files : "+torrent["title"])
+        except: print("Download Queueing Torrent Files : "+torrent["infohash"])
         remote_file_paths = __get_torrent_files_abs_paths(defaults,torrent["infohash"])
         local_base_dir = args[0]
         remote_file_paths_relative = __get_torrent_files_relative_paths(defaults,torrent["infohash"])
@@ -395,6 +401,8 @@ def step_download_files_into_folder(defaults,group,feed,torrent,args):
         if check_if_torrent_has_files_queued(torrent["infohash"]):
             return True,False # ready_to_yield, do_next_step
         else:
+            try: print("Torrent File Download Complete : "+torrent["title"])
+            except: print("Torrent File Download Complete : "+torrent["infohash"])
             torrent["current_file_download_status"] = "files_downloaded"
             return False,True # ready_to_yield, do_next_step
     else:
