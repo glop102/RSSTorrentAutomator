@@ -290,6 +290,9 @@ def queue_remote_path_for_deletion(remote_loc):
     it erases the location, but it should also survive the program getting
     restarted and still be in queue when the it is started again.
     """
+    if(remote_loc == ""):
+        print("ERROR : Filepath to delete is empty")
+        return
     if download_thread.is_alive():
         add_item_to_front_of_queue([remote_loc,"DELETE_RECURSIVLY"],"DELETE_RECURSIVLY",1)
     else:

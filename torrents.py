@@ -91,7 +91,10 @@ def __is_torrent_multifile(defaults,infohash):
     return False
 def __get_torrent_basepath(defaults,infohash):
     connect_to_server(defaults)
-    return server.d.base_path(infohash)
+    path = server.d.base_path(infohash)
+    if path == "":
+        print("ERROR : Empty path reported from server : "+infohash)
+    return path
 
 def __filepaths_will_be_on_same_filesystem(p1,p2):
     #make sure it is absolute and sane for a starting point
