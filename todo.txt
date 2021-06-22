@@ -1,0 +1,62 @@
+Handle the case of no internet being available
+  there are 3 places we contact the internet
+    1- rss feeds - just silently assume there is nothing new (might already do this)
+    2- torrent status checking/manipulation - silently yield the torrent processing queue
+    3- download queue - just pause and wait 30 seconds and start processing the queue again from the top
+  this is the torrent status checking error
+Feb 17 18:19:36 TerminalDogma python3[3113201]: Traceback (most recent call last):
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/main.py", line 154, in <module>
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     main()
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/main.py", line 134, in main
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     update_torrents(defaults,groups,feeds,torrents)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/main.py", line 96, in update_torrents
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     process_torrent(defaults,group,feed,torrent)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/torrents.py", line 720, in process_torrent
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     ready_to_yield,do_next_step = available_processing_steps[process_name](defaults,group,feed,torrent,args)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/torrents.py", line 175, in step_add_torrent
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     infohash = __add_torrent_to_rtorrent(defaults,torrent["link"])
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/opt/RSSTorrentAutomator/torrents.py", line 39, in __add_torrent_to_rtorrent
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     orig_hashes = server.download_list()
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1109, in __call__
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     return self.__send(self.__name, args)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1450, in __request
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     response = self.__transport.request(
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1153, in request
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     return self.single_request(host, handler, request_body, verbose)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1165, in single_request
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     http_conn = self.send_request(host, handler, request_body, verbose)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1278, in send_request
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     self.send_content(connection, request_body)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/xmlrpc/client.py", line 1308, in send_content
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     connection.endheaders(request_body)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/http/client.py", line 1250, in endheaders
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     self._send_output(message_body, encode_chunked=encode_chunked)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/http/client.py", line 1010, in _send_output
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     self.send(msg)
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/http/client.py", line 950, in send
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     self.connect()
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/http/client.py", line 1417, in connect
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     super().connect()
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/http/client.py", line 921, in connect
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     self.sock = self._create_connection(
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/socket.py", line 808, in create_connection
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     raise err
+Feb 17 18:19:36 TerminalDogma python3[3113201]:   File "/usr/lib/python3.8/socket.py", line 796, in create_connection
+Feb 17 18:19:36 TerminalDogma python3[3113201]:     sock.connect(sa)
+Feb 17 18:19:36 TerminalDogma python3[3113201]: OSError: [Errno 101] Network is unreachable
+Feb 17 18:19:36 TerminalDogma systemd[1]: rss-torrent-automator.service: Main process exited, code=exited, status=1/FAILURE
+Feb 17 18:19:36 TerminalDogma systemd[1]: rss-torrent-automator.service: Failed with result 'exit-code'.
+
+
+
+Add download resuming for files
+  if destination exists, set the starting offset to the current size of the destination
+  problem, what if the single torrent files tries to resume? Really we only want ti to resume if it is downloading mutliple files
+  solution : add a parameter that defaults to false taht will turn on file resuming
+  this will require adding a new download queue type that resumes instead of starting from scratch
+
+
+Unify the torrent variable "title" and "torrent_name"
+  adding from a feed will set it as "title"
+  step retrieve_torrent_name() will set it as "torrent_name"
+  there are some prints that use title, so perhaps we should change title to torrent_name?
