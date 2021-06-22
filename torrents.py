@@ -1,4 +1,6 @@
 import xmlrpc.client
+import urllib.request
+
 try:
     import regex as re
 except:
@@ -38,8 +40,16 @@ def __add_torrent_to_rtorrent(defaults,url):
     connect_to_server(defaults)
     orig_hashes = server.download_list()
     new_hashes = []
-    #server.load.normal("",url)
-    server.load.start("",url)
+    #server.log.xmlrpc("","/home/glop102/rtorrentXML.log") #turn on logging for Rtorrent to compare against what rutorrent does
+    #server.log.xmlrpc("","") #turn the logging off again because the file grows in size quickly
+    if(url.startswith("http")):
+        #workaround for whatbox getting banned from downloading from nyaa.si
+        #we download it on the current system and then send the actual file over to rtorrent
+        torrentFile = urllib.request.urlopen(url).read()
+        server.load.raw_start("",torrentFile)
+    else:
+        #if it is just a magnet link, then rtorrent already knows how to deal with it
+        server.load.start("",url)
     while len(new_hashes) == 0:
         sleep(0.5)
         new_hashes = [h for h in server.download_list() if not h in orig_hashes]
@@ -58,7 +68,9 @@ def __get_torrent_name(defaults,infohash):
     return server.d.name(infohash)
 def __get_torrent_ratio(defaults,infohash):
     connect_to_server(defaults)
-    return float( server.d.ratio(infohash) )
+    raw_ratio = server.d.ratio(infohash)
+    #docs say it is an int of the ratio multiplied by a thousand, so i need to divide by a thousand to get the real ratio
+    return float( raw_ratio ) / 1000.0
 def __get_torrent_filecount(defaults,infohash):
     connect_to_server(defaults)
     return server.d.size_files(infohash)
