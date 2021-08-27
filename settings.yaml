@@ -1,0 +1,6 @@
+downloads:
+  failures: []
+  hosts:
+    whatbox:
+      hostname: giotto.whatbox.ca
+  queue: []

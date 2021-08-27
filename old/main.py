@@ -77,26 +77,29 @@ def update_torrents(defaults,groups,feeds,torrents):
     #Tech Note - Torrent expansion must happen one at a time after some processing has occured to allow the increment_*() to happen before the next torrent is processed
     config_update = False
     for torrent in torrents:
-        group={"group_name":"DummyGroup"}
-        feed={"feed_url":"DummyFeedUrl"}
-        if "feed_url" in torrent and torrent["feed_url"] in feeds:
-            feed = feeds[ torrent["feed_url"] ]
-        if "group_name" in feed:
-            group = groups[feed["group_name"]]
-        elif "group_name" in torrent:
-            group = groups[torrent["group_name"]]
+        try:
+            group={"group_name":"DummyGroup"}
+            feed={"feed_url":"DummyFeedUrl"}
+            if "feed_url" in torrent and torrent["feed_url"] in feeds:
+                feed = feeds[ torrent["feed_url"] ]
+            if "group_name" in feed:
+                group = groups[feed["group_name"]]
+            elif "group_name" in torrent:
+                group = groups[torrent["group_name"]]
 
-        #Lets check if this torrent is new, and expand variables from the parrent sections
-        if not "current_processing_step" in torrent:
-            expand_new_torrent_object(defaults,group,feed,torrent)
-            save_configurations(defaults,groups,feeds,torrents)
-        starting_processing_step = torrent["current_processing_step"]
+            #Lets check if this torrent is new, and expand variables from the parrent sections
+            if not "current_processing_step" in torrent:
+                expand_new_torrent_object(defaults,group,feed,torrent)
+                save_configurations(defaults,groups,feeds,torrents)
+            starting_processing_step = torrent["current_processing_step"]
 
-        #Now lets run the processing steps on the torrent
-        process_torrent(defaults,group,feed,torrent)
+            #Now lets run the processing steps on the torrent
+            process_torrent(defaults,group,feed,torrent)
 
-        if starting_processing_step != torrent["current_processing_step"]:
-            save_configurations(defaults,groups,feeds,torrents)
+            if starting_processing_step != torrent["current_processing_step"]:
+                save_configurations(defaults,groups,feeds,torrents)
+        except Exception as err:
+            print(err)
 
     # remove the torrents that are done processing    
     before = len(torrents)

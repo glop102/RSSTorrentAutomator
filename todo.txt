@@ -47,6 +47,12 @@ Feb 17 18:19:36 TerminalDogma python3[3113201]: OSError: [Errno 101] Network is 
 Feb 17 18:19:36 TerminalDogma systemd[1]: rss-torrent-automator.service: Main process exited, code=exited, status=1/FAILURE
 Feb 17 18:19:36 TerminalDogma systemd[1]: rss-torrent-automator.service: Failed with result 'exit-code'.
 
+other time of the service crashing if unable to contact rtorrent
+Jul 09 23:09:57 TerminalDogma python3[2523277]: Error: wait_for_ratio - unable to get the torrent ratio
+Jul 09 23:09:57 TerminalDogma python3[2523277]: Shutting Down Service...
+
+After running for a long time, sometimes it does this instead of running correctly.
+Socket exception: Connection timed out (110)
 
 
 Add download resuming for files
@@ -60,3 +66,29 @@ Unify the torrent variable "title" and "torrent_name"
   adding from a feed will set it as "title"
   step retrieve_torrent_name() will set it as "torrent_name"
   there are some prints that use title, so perhaps we should change title to torrent_name?
+
+Partial Rewrite
+add GUI
+  need fences to prevent processing while gui is editing a section/torrent
+  drop-downs for selecting processing steps and then enforcing arguments
+convert to yaml for saving data
+  the current parsing is neat but non-standard and might have some holes in escaping data
+  if we convert to yaml, then we can unify the files into one
+  all changes will be done via the gui instead of directly editing the config file
+make this build into a docker image
+  make managment simpler by integrating it into the docker system i have
+
+how to get started with the GUI rewrite
+  simple front page to call some test queries
+    query the list of torrents
+    query the list of available processing functions
+      convert the list of processing functions to note how many args they have and what is optional with a description on each for the listing
+      yes, you will need to de-tooth the actual processing of torrents during this
+  do not worry about throing out a lot of code - this is a rewrite after all
+    might be the perfect time to really rewrite things to handle network errors
+
+
+Test Harness
+  RSS feed that gives out a static list of links to test against
+  A test config file for testing with
+    or maybe a series of test functions that do specific group of tasks to spot check things?
