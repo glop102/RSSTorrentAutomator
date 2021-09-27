@@ -49,7 +49,7 @@ class TaskQueue:
         with TaskQueue.__editlock:
             del TaskQueue.__queue[0]
     @staticmethod
-    def currentTaskFailed(reason="unknown",forceFailure=False):
+    def currentTaskFailed(reason="unknown",forceFailure=False,extended_debug=""):
         """Will attempt to intelligently try the task again. After it fails 3 times, it will stop retrying and move it to the failure queue."""
         with TaskQueue.__editlock:
             item = TaskQueue.__queue[0]
@@ -61,6 +61,7 @@ class TaskQueue:
             
             if item["fail count"] == 3 or forceFailure:
                 item["reason"] = reason
+                item["extended_debug"] = extended_debug
                 TaskQueue.__queueFailures.append(item)
             else:
                 TaskQueue.__addItem(item)
@@ -74,6 +75,8 @@ class TaskQueue:
                 del item["fail count"]
             if "reason" in item:
                 del item["reason"]
+            if "extended_debug" in item:
+                del item["extended_debug"]
             TaskQueue.__addItem(item)
     @staticmethod
     def requeueAllFailedTasks():

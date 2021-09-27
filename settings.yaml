@@ -3,4 +3,5 @@ downloads:
   hosts:
     whatbox:
       hostname: giotto.whatbox.ca
+      protocol: sftp
   queue: []
