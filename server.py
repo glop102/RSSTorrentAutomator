@@ -3,7 +3,9 @@ import yaml
 
 from threads import downloads
 
-app = FastAPI()
+app = FastAPI(
+    title="RSS Torrent Automater"
+)
 settings = {} #default to no settings
 try:
     #TODO make the settings file parse location configurable
@@ -24,6 +26,7 @@ def startup():
     else:
         downloads.start({})
     pass
+    downloads.registerEndpoints(app)
 
 @app.on_event("shutdown")
 def shutdown():

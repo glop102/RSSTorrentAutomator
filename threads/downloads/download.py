@@ -1,9 +1,14 @@
+import threading
 import paramiko
 import paramiko.hostkeys
 import time
 import netrc
+from pathlib import Path
 
 from paramiko.ssh_exception import SSHException
+
+from .taskprogress import TaskProgress
+from .exceptions import DownloadStopFlagException
 
 taskType = "download"
 protocols_available = ["sftp","http"]
@@ -33,29 +38,38 @@ def validate(hosts:dict,item:dict):
     
     #no problems found
     return None
-def process(hosts:dict,item:dict):
+def process(hosts:dict,item:dict,stopFlag:threading.Event):
+    TaskProgress.reset()
     host = hosts[item["host"]]
+    #make sure the folder exists for us to put the file in
+    p = Path(item["localLocation"])
+    p.parent.mkdir(parents=True,exist_ok=True)
     #decide on which protocol is going to be used based on the host
     if host["protocol"] == "sftp":
-        __sftp_download(host,item["remoteLocation"],item["localLocation"])
+        __sftp_download(host,item["remoteLocation"],item["localLocation"],stopFlag)
     elif host["protocol"] == "http":
         __http_download(host,item["remoteLocation"],item["localLocation"])
     else:
         raise(Exception("Unknown download protocol {}".format(host["protocol"])))
 
-
+#========================================================================================
+#  Progress Report Wrapper that handles checking if the stop flag has been set
+#========================================================================================
+def __download_report_wrapper(function,stopFlag:threading.Event):
+    def __download_report_wrapper_inner(*args,**kwargs):
+        if stopFlag.is_set():
+            raise DownloadStopFlagException()
+        function(*args,**kwargs)
+    return __download_report_wrapper_inner
 #========================================================================================
 #  HTTP Specific Functions
 #========================================================================================
 def __http_download(host:dict,remoteLocation:str,localLocation:str):
+    #TODO HTTP Download Support
     print("Sorry, but HTTP is not implemented yet.")
 #========================================================================================
 #  SFTP Specific Functions
 #========================================================================================
-
-"""
-GOAL : Get all settings saved to a single yaml file and not have random other settings files hanging around places
-"""
 
 __attempt = lambda host,parm,default=None : host[parm] if parm in host else default
 def __ssh_connect(host:dict, connection:paramiko.SSHClient):
@@ -74,6 +88,7 @@ def __ssh_connect(host:dict, connection:paramiko.SSHClient):
         #only look it up if both username and password are missing or they have directly asked to use netrc
         if (username is None and password is None) or username == "netrc":
             #TODO Make the netrc file location configurable
+            #TODO Make a second location that lives next to the settings file that we also parse to keep accoutn info seperate from settings
             username,_,password = netrc.netrc().hosts[hostname]
     except:
         pass #we don't really care if it errors from not finding a file or the host not being in the netrc file - this is a backup after all
@@ -121,19 +136,17 @@ def __ssh_connect_with_hostkeys(host:dict,connection:paramiko.SSHClient):
         key = keys[keys.keys()[0]]
         host["hostkey"] = paramiko.hostkeys.HostKeyEntry([hostname],key).to_line().strip()
 
-def __sftp_progress_callback(currentBytes:int,totalBytes:int):
-    pass
-
-def __sftp_download(host:dict,remoteLocation:str,localLocation:str):
+def __sftp_download(host:dict,remoteLocation:str,localLocation:str,stopFlag:threading.Event):
     #TODO check if compression is a good idea for this
     connection = paramiko.SSHClient()
     sftp_client = None
 
     try:
+        #connect to server
         __ssh_connect_with_hostkeys(host,connection)
         #perform download
         sftp_client = connection.open_sftp()
-        sftp_client.get(remoteLocation,localLocation,__sftp_progress_callback)
+        sftp_client.get(remoteLocation,localLocation,__download_report_wrapper(TaskProgress.reportFileProgress,stopFlag))
     finally:
         if sftp_client is not None: sftp_client.close()
         connection.close()
