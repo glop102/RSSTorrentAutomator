@@ -117,6 +117,7 @@ wait_for_torrent_complete |        | Waits for the torrent to finish downloading
 wait_for_ratio            | float  | Waits for the torrent to reach a seeding ratio given as an argument
 set_label                 | string | Set the label of the torrent to the string given. (Label is reflected in ruTorrent)
 stop_tracking_torrent     |        | Remove this torrent entry from the program, but leave it untouched in rTorrent in whatever state it is in
+debug_perpetual_wait      |        | Have the torrent stop processing but do not delete any data. Useful for handling an error of your processing (eg regex parsing failed) and you want to debug what went wrong.
 delete_torrent_only       |        | Remove the torrent from rTorrent and also stop tracking the torrent. Leaves the files wherever rTorrent downloaded them to
 delete_torrent_and_files  |        | Removes the torrent from rTorrent, stops tracking the torrent, and queues the remote files to be deleted. This is the recomended way to get rid of torrents.
 download_files            | string | Queue all the files to download from the remote rTorrent location to the local machine. The given string is the destination. Will be a folder if multiple files, or the filename if only a single file. (uses variable name current_file_download_status)
@@ -129,8 +130,8 @@ addition_torrent_var      | float,float,string | Add the two numbers together an
 addition_feed_var         | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the parent feed structure. You can dereference a variable for either integers with %var% like normal.
 addition_group_var        | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the parent group structure. You can dereference a variable for either integers with %var% like normal.
 addition_global_var       | float,float,string | Add the two numbers together and store the result in the variable that is the last argument. Stores the value in the global structure. You can dereference a variable for either integers with %var% like normal.
-post_processing_steps     |        | Switch to processing the step list in the varaible called post_processing_steps. (Be carefule of recursion)
-processing_steps_variable | string | Switch to processing the step list in the varaible name given as the argument. (Be carefule of recursion)
+post_processing_steps     |        | Switch to processing the step list in the varaible called post_processing_steps. (Be careful of recursion)
+processing_steps_variable | string | Switch to processing the step list in the varaible name given as the argument. (Be careful of recursion)
 retrieve_torrent_name     |        | Gets the name of the torrent from the server and stores it in variable named "torrent_name"
 regex_parse               |string,string,string | Applies a regular expression to a variable and stores it in another variable. The order of arguments is (SourceVarName,RegularExpression,DestinationVarName), The source variable must exist, but the destination can be new. It sets the variable regex_matched to true or false based on if it matched anything.
 set_feed_var              | string,string | Save a value when processing a torrent to the feed that a torrent came from. First string is the variable name. Second string is the value to set. (eg set_feed_var(last_downloaded_epNum,%episode_num%) )

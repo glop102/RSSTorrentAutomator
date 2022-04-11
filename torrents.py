@@ -4,8 +4,9 @@ import urllib.request
 try:
     import regex as re
 except:
-    print("Warn: unable to import module 'regex'\n      some regex patterns may not be avaialable")
-    import re
+    #print("Warn: unable to import module 'regex'\n      some regex patterns may not be avaialable")
+    #import re
+    raise Exception("Unable to import regex module. This is an expanded regex support module for python. The package may be simply called python-regex in your package manager.")
 from time import sleep
 from downloads import queue_file_for_download,check_if_torrent_has_files_queued,queue_remote_path_for_deletion,queue_file_for_local_copy
 from variables import get_variable_value_cascaded,expand_string_variables,safe_parse_split
@@ -426,6 +427,8 @@ def step_download_files_into_folder(defaults,group,feed,torrent,args):
 def step_stop_tracking_torrent(defaults,group,feed,torrent,args):
     torrent["current_processing_step"] = "ready_for_removal 0"
     return True,False # ready_to_yield, do_next_step
+def step_debug_perpetual_wait(defaults,group,feed,torrent,args):
+    return True,False # ready_to_yield, do_next_step
 def step_delete_torrent_only(defaults,group,feed,torrent,args):
     __delete_torrent_only(defaults,torrent["infohash"])
     torrent["current_processing_step"] = "ready_for_removal 0"
@@ -690,6 +693,7 @@ available_processing_steps = {
     "download_files" : step_download_files,
     "download_files_into_folder" : step_download_files_into_folder,
     "stop_tracking_torrent" : step_stop_tracking_torrent,
+    "debug_perpetual_wait" : step_debug_perpetual_wait,
     "delete_torrent_only" : step_delete_torrent_only,
     "delete_torrent_and_files" : step_delete_torrent_and_files,
     "retrieve_torrent_name" : step_retrieve_torrent_name,
