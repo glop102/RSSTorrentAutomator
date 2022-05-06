@@ -24,25 +24,27 @@ def registerEndpoints(app:FastAPI):
     @app.get("/downloads/json/queue",tags=["downloads"])
     def get_queue():
         return TaskQueue.getQueue()
-    @app.get("/downloads/json/queueItem/{itemNumber}",tags=["downloads"])
-    def get_queue_item(itemNumber:int):
-        """Get a single item from the Download Queue. Indexes start at 0."""
-        q = TaskQueue.getQueue()
-        if len(q) <= itemNumber:
-            return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
-        return q[itemNumber]
+    # TODO Make this use a UUIDv4 instead of index
+    # @app.get("/downloads/json/queueItem/{itemNumber}",tags=["downloads"])
+    # def get_queue_item(itemNumber:int):
+    #     """Get a single item from the Download Queue. Indexes start at 0."""
+    #     q = TaskQueue.getQueue()
+    #     if len(q) <= itemNumber:
+    #         return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
+    #     return q[itemNumber]
     
     @app.get("/downloads/json/failures",tags=["downloads"])
     def get_failure_queue():
         """When an item fails in processing with the normal queue, it will be sent here to wait for a human to come intervene."""
         return TaskQueue.getQueueFailures()
-    @app.get("/downloads/json/failureItem/{itemNumber}",tags=["downloads"])
-    def get_failure_item(itemNumber:int):
-        """Get a single item from the Download Queue. Indexes start at 0."""
-        q = TaskQueue.getQueueFailures()
-        if len(q) <= itemNumber:
-            return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the failure queue."})
-        return q[itemNumber]
+    # TODO Make this use a UUIDv4 instead of index
+    # @app.get("/downloads/json/failureItem/{itemNumber}",tags=["downloads"])
+    # def get_failure_item(itemNumber:int):
+    #     """Get a single item from the Download Queue. Indexes start at 0."""
+    #     q = TaskQueue.getQueueFailures()
+    #     if len(q) <= itemNumber:
+    #         return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the failure queue."})
+    #     return q[itemNumber]
     @app.post("/downloads/json/failureRetryAll",tags=["downloads"])
     def retry_all_failures():
         TaskQueue.requeueAllFailedTasks()
@@ -51,20 +53,22 @@ def registerEndpoints(app:FastAPI):
     def delete_all_failures():
         TaskQueue.deleteAllFailedTasks()
         return {}
-    @app.post("/downloads/json/failureClear/{itemNum}",tags=["downloads"])
-    def delete_single_failure(itemNum:int):
-        try:
-            TaskQueue.deleteFailedTask(itemNum)
-            return {}
-        except:
-            return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
-    @app.post("/downloads/json/failureRetry/{itemNum}",tags=["downloads"])
-    def retry_single_failure(itemNum:int):
-        try:
-            TaskQueue.requeueFailedTask(itemNum)
-            return {}
-        except:
-            return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
+    # TODO Make this use a UUIDv4 instead of index
+    # @app.post("/downloads/json/failureClear/{itemNum}",tags=["downloads"])
+    # def delete_single_failure(itemNum:int):
+    #     try:
+    #         TaskQueue.deleteFailedTask(itemNum)
+    #         return {}
+    #     except:
+    #         return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
+    # TODO Make this use a UUIDv4 instead of index
+    # @app.post("/downloads/json/failureRetry/{itemNum}",tags=["downloads"])
+    # def retry_single_failure(itemNum:int):
+    #     try:
+    #         TaskQueue.requeueFailedTask(itemNum)
+    #         return {}
+    #     except:
+    #         return JSONResponse(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, content={"Issue":"The requested item number is larger than the number of items in the queue."})
 
     @app.get("/downloads/json/progress",tags=["downloads"])
     def current_progress() -> ProgressStatus:
@@ -75,13 +79,6 @@ def registerEndpoints(app:FastAPI):
             "status" : TaskProgress.status,
             "percentage" : TaskProgress.getPercentage()
         }
-        p = ProgressStatus
-        p.currentCount = TaskProgress.currentCount
-        p.maxCount = TaskProgress.maxCount
-        p.speed = TaskProgress.speed
-        p.status = TaskProgress.status
-        p.percentage = TaskProgress.getPercentage()
-        return p
     
     @app.post("/downloads/json/addDebugItem",tags=["downloads"])
     def debug_item(request:DebugCreationType):
