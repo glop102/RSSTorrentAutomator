@@ -1,8 +1,6 @@
-#====================================================
-# HAHA, rewrite attempt 2
-#====================================================
-sftp - get the server config data from some location
-sftp - finish with the progress reporting callback stuff
-ioqueue - success handling of jobs
-ioqueue - failure handling and error reporting of jobs
-ioqueue - have groups attached to jobs? or is this the responsibility of someone else? Need to know if a group is done for processing steps
+sftp - progress reporting
+ - sliding window for speed calculation
+sftp - elegantly handle if the local location is a directory, and just sove the remote item into the directory
+ - need to slightly rework progress reporting to track number of files left/done for the percentage
+ioqueue - on process return callbacks and on __del__, check if we have a default save location. if so, wrie a yaml file out of self
+ioqueue - consider letting the queue be restarted so a person can effectivly pause everything to look around and then restart it
