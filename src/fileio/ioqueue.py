@@ -54,7 +54,7 @@ class FileIO(Serializable):
         self.stopQueue()
         
 
-    def __jobStartWrapperFactory(self,uuid):
+    def __start_job(self,uuid:str,job:FileIOHandlerInterface) -> None:
         def __jobStartWrapper(job):
             try: # return the UUID to let us know who just finished processing
                 job.start(self)
@@ -62,15 +62,15 @@ class FileIO(Serializable):
             except Exception as e: #attach the UUID to any exception that happens
                 e.uuid = uuid
                 raise e
-        return __jobStartWrapper
+        self.__pool.apply_async(
+            __jobStartWrapper,
+            [job],
+            callback=self.__processing_success,
+            error_callback=self.__processing_failure
+        )
     def __start_jobs(self) -> None:
         for uuid in self.currentJobs:
-            self.__pool.apply_async(
-                self.__jobStartWrapperFactory(uuid),
-                [self.currentJobs[uuid]],
-                callback=self.__processing_success,
-                error_callback=self.__processing_failure
-            )
+            self.__start_job(uuid,self.currentJobs[uuid])
     def __processing_success(self,async_result) -> None:
         # The result is simply the UUID of the job
         if not async_result in self.currentJobs:
@@ -110,13 +110,8 @@ class FileIO(Serializable):
     
     def addNewJob(self,job) -> str:
         uuid = str(uuid4())
-        self.__pool.apply_async(
-            self.__jobStartWrapperFactory(uuid),
-            [job],
-            callback=self.__processing_success,
-            error_callback=self.__processing_failure
-        )
         self.currentJobs[uuid] = job
+        self.__start_job(uuid,job)
 
         if self.autosaveFilename:
             self.saveQueue()
@@ -125,13 +120,8 @@ class FileIO(Serializable):
         uuids = []
         for job in jobs:
             uuid = str(uuid4())
-            self.__pool.apply_async(
-                self.__jobStartWrapperFactory(uuid),
-                [job],
-                callback=self.__processing_success,
-                error_callback=self.__processing_failure
-            )
             self.currentJobs[uuid] = job
+            self.__start_job(uuid,job)
             uuids.append(uuid)
 
         if self.autosaveFilename:
