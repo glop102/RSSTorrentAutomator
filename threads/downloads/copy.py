@@ -1,1 +1,0 @@
-taskType = "local copy"
