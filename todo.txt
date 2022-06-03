@@ -1,4 +1,5 @@
 sftp - elegantly handle if the local location is a directory, and just sove the remote item into the directory
  - need to slightly rework progress reporting to track number of files left/done for the percentage
-ioqueue - on process return callbacks and on __del__, check if we have a default save location. if so, wrie a yaml file out of self
+sftp - add in an optional file download resume support
 ioqueue - consider letting the queue be restarted so a person can effectivly pause everything to look around and then restart it
+ioqueue - add a restartFailedJob(uuid)

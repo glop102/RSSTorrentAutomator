@@ -57,10 +57,8 @@ class SFTPDownload(FileIOHandlerInterface):
         sftp_client = None
         try:
             #connect to server
-            print("Connecting...")
             self.__connect(serverData,connection)
             #perform download
-            print("Downloading...")
             sftp_client = connection.open_sftp()
             self.__resetProgressCounters()
             sftp_client.get(
@@ -136,7 +134,11 @@ class SFTPDownload(FileIOHandlerInterface):
         This gets called from paramiko to report when another chunk has been downloaded and saved to disk.
         This is where we save the progress elsewhere and update timestamps for speed approximations.
         """
+        # note to future me - this works as optimally as it can
+        # paramiko must still wait on queued up reads to finish before it will actually let us disconnect from the server
+        # it can queue up to 100 read requests which can take a little while to flush - by my home testing ~1.5 minutes
         self.checkStopFlags()
+
         self.__progress_bytesDone = currentBytes
         self.__progress_bytesTotal = totalBytes
 

@@ -5,6 +5,7 @@ from typing import List
 from uuid import uuid4
 from threading import Event
 from .exceptions import StopFlagException,UserCancelException
+import yaml
 
 class FileIOHandlerInterface(Serializable):
     """
@@ -37,18 +38,18 @@ class FileIO(Serializable):
     If you really do want to simply queue the job, then you can append it to currentJobs, but there is no mechanism to detect queded items to start them later.
     """
     yaml_tag = u"!FileIO"
-    def __init__(self,currentJobs:dict=None,failedJobs:dict=None,failedJobReasons:dict=None,numberSimultaneous:int=1,hosts:dict=None):
-        if type(currentJobs) is dict:print("INIT CALLED - Handed a job list of size {}".format(len(currentJobs)))
+    def __init__(self,currentJobs:dict=None,failedJobs:dict=None,failedJobReasons:dict=None,numberSimultaneous:int=1,hosts:dict=None,autosaveFilename:str=None):
         self.currentJobs = currentJobs or {}
         self.failedJobs = failedJobs or {}
         self.failedJobReasons = failedJobReasons or {}
         self.numberSimultaneous = numberSimultaneous  #how many current jobs to allow to run at the same time
         self.hosts = hosts or {}
+        self.autosaveFilename = autosaveFilename
 
         self.__pool = ThreadPool(self.numberSimultaneous)
         self.__start_jobs()
     def __repr__(self):
-        return "{name}(Current={}, Failed={}, Threads={})".format(self.__class__.__name__,len(self.currentJobs),len(self.failedJobs),self.numberSimultaneous)
+        return "{name}(Current={}, Failed={}, Threads={}, Hosts={}, autosave={})".format(self.__class__.__name__,len(self.currentJobs),len(self.failedJobs),self.numberSimultaneous,len(self.hosts),self.autosaveFilename)
     def __del__(self):
         self.stopQueue()
         
@@ -77,6 +78,9 @@ class FileIO(Serializable):
             print("The returned result that is supposed to be a UUID was {}".format(async_result))
             return
         del self.currentJobs[async_result]
+
+        if self.autosaveFilename:
+            self.saveQueue()
     def __processing_failure(self,exception_thrown) -> None:
         # figure out who just finished
         # remove them from the curent job queue
@@ -95,6 +99,9 @@ class FileIO(Serializable):
         self.failedJobs[uuid] = job
         self.failedJobReasons[uuid] = exception_thrown
 
+        if self.autosaveFilename:
+            self.saveQueue()
+
     def changeJobPoolSize(self, numberSimultaneous) -> None:
         self.stopQueue()
         self.numberSimultaneous = numberSimultaneous
@@ -110,6 +117,9 @@ class FileIO(Serializable):
             error_callback=self.__processing_failure
         )
         self.currentJobs[uuid] = job
+
+        if self.autosaveFilename:
+            self.saveQueue()
         return uuid
     def addNewJobs(self,jobs) -> List[str]:
         uuids = []
@@ -123,6 +133,9 @@ class FileIO(Serializable):
             )
             self.currentJobs[uuid] = job
             uuids.append(uuid)
+
+        if self.autosaveFilename:
+            self.saveQueue()
         return uuids
 
     def stopQueue(self) -> None:
@@ -132,3 +145,11 @@ class FileIO(Serializable):
             job.stopFlag.set()
         self.__pool.close()
         self.__pool.join()
+    def saveQueue(self,filename:str=None) -> None:
+        if filename == None:
+            filename = self.autosaveFilename
+        if filename == None:
+            print("Warning: {} asked to save but there is no available filename to save to".format(self.__class__.__name__))
+            return
+        f = open(filename,"w")
+        yaml.dump(self,f)
