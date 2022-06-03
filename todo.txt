@@ -2,4 +2,3 @@ sftp - elegantly handle if the local location is a directory, and just sove the 
  - need to slightly rework progress reporting to track number of files left/done for the percentage
 sftp - add in an optional file download resume support
 ioqueue - consider letting the queue be restarted so a person can effectivly pause everything to look around and then restart it
-ioqueue - add a restartFailedJob(uuid)

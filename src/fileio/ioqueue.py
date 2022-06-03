@@ -108,15 +108,9 @@ class FileIO(Serializable):
         self.__pool = ThreadPool(self.numberSimultaneous)
         self.__start_jobs()
     
-    def addNewJob(self,job) -> str:
-        uuid = str(uuid4())
-        self.currentJobs[uuid] = job
-        self.__start_job(uuid,job)
-
-        if self.autosaveFilename:
-            self.saveQueue()
-        return uuid
-    def addNewJobs(self,jobs) -> List[str]:
+    def addNewJob(self,job:FileIOHandlerInterface) -> str:
+        return self.addNewJobs([job])[0] #this is really just a special case of a very short list
+    def addNewJobs(self,jobs:List[FileIOHandlerInterface]) -> List[str]:
         uuids = []
         for job in jobs:
             uuid = str(uuid4())
@@ -127,9 +121,22 @@ class FileIO(Serializable):
         if self.autosaveFilename:
             self.saveQueue()
         return uuids
+    def retryFailedJob(self,uuid:str) -> None:
+        self.retryFailedJobs([uuid]) #this is really just a special case of a very short list
+    def retryFailedJobs(self,uuids:List[str]) -> None:
+        for uuid in uuids:
+            job = self.failedJobs[uuid]
+            del self.failedJobs[uuid]
+            del self.failedJobReasons[uuid]
+            self.currentJobs[uuid] = job
+            self.__start_job(uuid,job)
+        if self.autosaveFilename:
+            self.saveQueue()
 
     def stopQueue(self) -> None:
-        """This stops the processing queue permantly. You can serialize the data after it has been stopped, but a new object must be made to have a valid queue again."""
+        """This stops the processing queue permantly. You can serialize the data after it has been stopped, but a new object must be made to have a valid queue again.
+        Note: some jobs (eg SFTP) can take a long time to stop. This function will block until they have all stopped.
+        """
         for key in self.currentJobs:
             job=self.currentJobs[key]
             job.stopFlag.set()
