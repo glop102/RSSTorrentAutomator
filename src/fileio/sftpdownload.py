@@ -3,8 +3,11 @@ import paramiko
 import paramiko.hostkeys
 from paramiko.ssh_exception import SSHException
 import time
-#import netrc  #to be added in the future - for now, bah humbug, cleartext in the config file
 from pathlib import Path
+from collections import deque
+#import netrc  #to be added in the future - for now, bah humbug, cleartext in the config file
+
+from ..utils import humanReadableSpeed,humanReadableFilesize
 from .exceptions import UnknownHostException
 from .ioqueue import FileIO,FileIOHandlerInterface
 
@@ -19,9 +22,6 @@ class SFTPServerConfig(Serializable):
         self.key_filename = key_filename
         self.password = password
         self.timeout = timeout
-
-        # temp vars for progress reporting
-        
     def __repr__(self) -> str:
         return "{}({}:{})".format(self.__class__.__name__,self.hostname,self.port)
 
@@ -32,6 +32,8 @@ class SFTPDownload(FileIOHandlerInterface):
         self.host = host
         self.remoteLocation = remoteLocation
         self.localLocation = localLocation
+
+        self.__resetProgressCounters()
     def __repr__(self):
         return "{}({},{},{})".format(
             self.__class__.__name__,
@@ -123,6 +125,12 @@ class SFTPDownload(FileIOHandlerInterface):
         self.__progress_bytesDone = 0
         self.__progress_bytesTotal = 0
         self.__progress_timeStart = time.monotonic()
+
+        # This is a sliding window of speeds For every time slice within this window.
+        # To get the ongoing speed, use the average of the deque so that it is more robust to random variation
+        self.__progress_speedWindow_speeds = deque(maxlen=10)
+        self.__progress_speedWindow_prevtime = self.__progress_timeStart
+        self.__progress_speedWindow_prevbytes = 0
     def __progress_callback(self,currentBytes:int,totalBytes:int) -> None:
         """
         This gets called from paramiko to report when another chunk has been downloaded and saved to disk.
@@ -131,25 +139,30 @@ class SFTPDownload(FileIOHandlerInterface):
         self.checkStopFlags()
         self.__progress_bytesDone = currentBytes
         self.__progress_bytesTotal = totalBytes
+
+        now = time.monotonic()
+        timediff = now - self.__progress_speedWindow_prevtime
+        if timediff > 1.0:
+            speed = float(currentBytes - self.__progress_speedWindow_prevbytes) / timediff
+            self.__progress_speedWindow_speeds.append(speed)
+            self.__progress_speedWindow_prevtime = now
+            self.__progress_speedWindow_prevbytes = currentBytes
+            
     def getProcessingPercentage(self)->float:
         """Returns a number between 0 and 1 as a float. It is calculated off of the number of bytes downloaded versus total bytes for a file."""
         return float(self.__progress_bytesDone) / self.__progress_bytesTotal
     def getProcessingStatus(self)-> str:
-        filesize = self.__progress_bytesTotal
-        filesizeSuffix = ["Bytes","KB","MB","GB","TB"]
-        filesizeIndex = 0
-        while(filesize > 1000):
-            filesizeIndex += 1
-            filesize /= 1000
+        if self.__progress_bytesDone == 0:
+            return "Has not started"
+        filesize = humanReadableFilesize(self.__progress_bytesTotal)
 
         if self.__progress_bytesDone != self.__progress_bytesTotal:
             percent = float(self.__progress_bytesDone)/self.__progress_bytesTotal
-            speed = self.__progress_bytesDone / float( time.monotonic() - self.__progress_timeStart )
-            speedSuffix = ["Bps","KBps","MBps","GBps","TBps"]
-            speedIndex = 0
-            while(speed > 1000):
-                speedIndex += 1
-                speed /= 1000
-            return "{:3.1%} - {:3.1f} {}".format(percent,speed,speedSuffix[speedIndex])
+            if len(self.__progress_speedWindow_speeds) > 0:
+                speed = sum(self.__progress_speedWindow_speeds) / len(self.__progress_speedWindow_speeds)
+            else:
+                speed = 0
+            return "{:3.1%} - {}".format(percent,humanReadableSpeed(speed))
         else:
-            return "100.0% - {:3.1f} {}".format(filesize,filesizeSuffix[filesizeIndex])
+            speed = self.__progress_bytesTotal / float(time.monotonic() - self.__progress_timeStart)
+            return "100.0% - {} - {}".format(humanReadableSpeed(speed),filesize)

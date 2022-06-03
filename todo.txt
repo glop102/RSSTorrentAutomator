@@ -1,5 +1,3 @@
-sftp - progress reporting
- - sliding window for speed calculation
 sftp - elegantly handle if the local location is a directory, and just sove the remote item into the directory
  - need to slightly rework progress reporting to track number of files left/done for the percentage
 ioqueue - on process return callbacks and on __del__, check if we have a default save location. if so, wrie a yaml file out of self

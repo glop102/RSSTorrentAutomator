@@ -57,9 +57,11 @@ from src import fileio
 queue = fileio.FileIO()
 queue.hosts["whatbox"] = fileio.SFTPServerConfig(hostname="",username="",password="")
 print(yaml.dump(queue))
-# queue.addNewJob(fileio.SFTPDownload("whatbox","files/[Erai-raws] Kaizoku Oujo - 12 END [1080p][Multiple Subtitle][BF50E67A].mkv","/tmp"))
-queue.addNewJob(fileio.SFTPDownload("whatbox","files/[Erai-raws] Kaizoku Oujo - 12 END [1080p][Multiple Subtitle][BF50E67A].mkv","/tmp/test.mkv"))
-while(len(queue.currentJobs) > 0):
+# job = fileio.SFTPDownload("whatbox","files/[Erai-raws] Kaizoku Oujo - 12 END [1080p][Multiple Subtitle][BF50E67A].mkv","/tmp")
+job = fileio.SFTPDownload("whatbox","files/[Erai-raws] Kaizoku Oujo - 12 END [1080p][Multiple Subtitle][BF50E67A].mkv","/tmp/test.mkv")
+uuid = queue.addNewJob(job)
+while(uuid in queue.currentJobs):
+    print(queue.currentJobs[uuid].getProcessingStatus())
     time.sleep(2)
-    print(queue.currentJobs[list(queue.currentJobs.keys())[0]].getProcessingStatus())
+print(job.getProcessingStatus())
 print(yaml.dump(queue))
