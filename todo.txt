@@ -1,8 +1,13 @@
 sftp - elegantly handle if the local location is a directory, and just sove the remote item into the directory
  - need to slightly rework progress reporting to track number of files left/done for the percentage
 sftp - add in an optional file download resume support
-ioqueue - consider letting the queue be restarted so a person can effectivly pause everything to look around and then restart it
 fileio - add some new jobs
  - sftpdelete - delete a remote file/directory - mostly for doing cleanup
  - localcopy - making copies of files takes a long time, so no reason to block other things while it happens
  - localmove - sometimes files are across filesystem boundaries and so involes more effort which takes time
+
+torrents - start playing around with making a server+torrent abstraction classes
+ - add in help strings for the interface class
+ - need to try to add in timeout safeties
+ - implement adding torrents to the server
+transmission - https://transmission-rpc.readthedocs.io/en/v3.3.0/client.html - has labels but not in the convient torrent abstraction
