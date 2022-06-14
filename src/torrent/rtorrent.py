@@ -1,6 +1,9 @@
 from .interfaces import TorrentServer,Torrent,TorrentFile
 from typing import List,Union
+from time import sleep
 import xmlrpc.client
+import urllib.request
+import inspect
 #https://docs.python.org/3/library/xmlrpc.client.html#module-xmlrpc.client
 #https://rtorrent-docs.readthedocs.io/en/latest/cmd-ref.html#download-items-and-attributes
 
@@ -94,6 +97,7 @@ class RTorrent(Torrent):
 
 class RTorrentServer(TorrentServer):
     def __init__(self,url:str):
+        """Pass in the URL to control rTorrent. If you are connecting through ruTorrent, it often will be https://example.com/xmlrpc. Give account credentials as username:password@example.com if required."""
         self.proxy = xmlrpc.client.ServerProxy(url)
     def getTorrentList(self) -> List[Torrent]:
         hashes = self.proxy.download_list()
@@ -101,9 +105,32 @@ class RTorrentServer(TorrentServer):
         for h in hashes:
             ts.append(RTorrent(self,h))
         return ts
-    def addNewTorrent_URL(self, url:str) -> Torrent: pass
-    def addNewTorrent_data(self, data:Union[bytes,str]) -> Torrent: pass
+    def addNewTorrent_URL(self, url:str, downloadLocal:bool = False) -> Torrent:
+        """This has an extra parameter of downloadLocal. IF set to true, instead of passing a URL to the torrent client, we will instead download the URL and pass the data to the client."""
+        if(url.startswith("magnet") or downloadLocal == False):
+            #just the most basic situation of letting the client handle the URL
+            preIDs = self.proxy.download_list()
+            self.proxy.load.start("",url) # the empty first param is required
+            newIDs = []
+            while len(newIDs) == 0:
+                sleep(0.5)
+                newIDs = [ id for id in self.proxy.download_list() if id not in preIDs ]
+            if len(newIDs) > 1:
+                raise Exception("There were more than 1 new IDs after adding the torrent URL {}".format(url))
+            return RTorrent(self,newIDs[0])
+        # else we have been asked to download the URL and send the raw file to the client
+        return self.addNewTorrent_data(urllib.request.urlopen(url).read())
+    def addNewTorrent_data(self, data:Union[bytes,str]) -> Torrent:
+        preIDs = self.proxy.download_list()
+        self.proxy.load.raw_start("",data) # the empty first param is required
+        newIDs = []
+        while len(newIDs) == 0:
+            sleep(0.5)
+            newIDs = [ id for id in self.proxy.download_list() if id not in preIDs ]
+        if len(newIDs) > 1:
+            raise Exception("There were more than 1 new IDs after adding torrent data ({})".format(type(data)))
+        return RTorrent(self,newIDs[0])
     def removeTorrent(self, torrent:Union[str,Torrent]) -> None:
-        if type(torrent) == Torrent:
+        if Torrent in inspect.getmro(type(torrent)):
             torrent = torrent.id
         self.proxy.d.erase(torrent)

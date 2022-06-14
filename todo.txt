@@ -6,8 +6,4 @@ fileio - add some new jobs
  - localcopy - making copies of files takes a long time, so no reason to block other things while it happens
  - localmove - sometimes files are across filesystem boundaries and so involes more effort which takes time
 
-torrents - start playing around with making a server+torrent abstraction classes
- - add in help strings for the interface class
- - need to try to add in timeout safeties
- - implement adding torrents to the server
-transmission - https://transmission-rpc.readthedocs.io/en/v3.3.0/client.html - has labels but not in the convient torrent abstraction
+torrents - add transmission support - https://transmission-rpc.readthedocs.io/en/v3.3.0/client.html
