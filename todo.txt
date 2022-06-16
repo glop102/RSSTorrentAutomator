@@ -1,9 +1,9 @@
-sftp - elegantly handle if the local location is a directory, and just sove the remote item into the directory
- - need to slightly rework progress reporting to track number of files left/done for the percentage
-sftp - add in an optional file download resume support
 fileio - add some new jobs
  - sftpdelete - delete a remote file/directory - mostly for doing cleanup
  - localcopy - making copies of files takes a long time, so no reason to block other things while it happens
  - localmove - sometimes files are across filesystem boundaries and so involes more effort which takes time
 
 torrents - add transmission support - https://transmission-rpc.readthedocs.io/en/v3.3.0/client.html
+torrents - rtorrent - cache results that will never change
+
+processing - setPermissions(location,filepermissions,directorypermissions=None) - set the permissions to filepermissions recursively (if directorypermissions is given, that is applied to directories instead of filepermissions)

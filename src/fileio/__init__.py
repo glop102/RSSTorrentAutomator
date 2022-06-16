@@ -1,7 +1,7 @@
 from.ioqueue import FileIO
 
 from .debugtasks import Debug10SDelay,Debug10SDelayFail
-from .sftpdownload import SFTPDownload,SFTPServerConfig
+from .sftp import SFTPDownload,SFTPServerConfig
 
 # How to use:
 # 1) import FileIO from this module and make a new object of it or import a yaml file with it

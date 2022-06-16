@@ -1,33 +1,32 @@
 import yaml
 import time
-from src import torrent
+# from src import torrent
+from src import fileio
 
 
-server = torrent.RTorrentServer("rtorrentURLHere")
-torrents = server.getTorrentList()
-for t in [torrents[1]]:
-    print(t.name)
-    print(t.id)
-    print(t.savePath)
-    print(t.active)
-    print(t.completed)
-    print(t.bytesDone)
-    print(t.bytesLeft)
-    print(t.bytesTotal)
-    print(t.totalSize)
-    original_label = t.label
-    print(original_label)
-    t.label = "Example Label"
-    print(t.label)
-    t.label = original_label
-    print(t.isFullTorrent)
-    print(t.downloadProgress)
+# server = torrent.RTorrentServer("")
+# # torrent = server.addNewTorrent_URL("https://example.com/file.torrent",True)
+# torrent = server.addNewTorrent_URL('''magnet:?xt=urn:btih:etcetc''')
+# time.sleep(2)
+# torrent.stop()
+# server.removeTorrent(torrent)
 
-    print()
-    files = t.files
-    for f in files:
-        print(f.absolutePath)
-        print("\t"+f.relativePath)
-        print("\t"+str(f.downloadProgress))
-        print("\t"+str(f.completed))
-        print("\t"+str(f.bytesTotal))
+queue = fileio.FileIO()
+queue.hosts["sftpserver"] = fileio.SFTPServerConfig("","",password="")
+downloader = fileio.SFTPDownload("sftpserver","files/","/tmp/")
+id = queue.addNewJob(downloader)
+
+# \033[F - go to beginning of the previous line
+# \033[2K - clear line
+# \033[A - move up a line
+verbose = True
+prevNumLines = 0
+while id in queue.currentJobs:
+    status = downloader.getProcessingStatus(verbose)
+    unwindLines = "\r"+ ( "\033[2K\033[A"*prevNumLines )
+    print(unwindLines + status,end="",flush=True)
+    prevNumLines = status.count("\n")
+    time.sleep(1)
+
+print()
+print(downloader.getProcessingStatus(verbose))

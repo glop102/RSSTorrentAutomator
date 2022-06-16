@@ -21,8 +21,10 @@ class FileIOHandlerInterface(Serializable):
     @abstractmethod
     def getProcessingPercentage(self) -> float: pass
     @abstractmethod
-    def getProcessingStatus(self) -> str:
-        "Intended to be a human readable thing - eg '12 items remaining' or '2.6Gb/12.4Gb - 1.2Mbps'"
+    def getProcessingStatus(self,verbose:bool=False) -> str:
+        """Intended to be a human readable string - eg '12 items remaining' or '2.6Gb/12.4Gb - 1.2Mbps'
+        When the verbose flag is true, the status can be a multiline string.
+        """
         pass
     def checkStopFlags(self):
         if self.stopFlag.is_set():
