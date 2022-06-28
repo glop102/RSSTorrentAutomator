@@ -552,18 +552,21 @@ def step_get_file_info(defaults,group,feed,torrent,args):
 def step_populate_next_file_info(defaults,group,feed,torrent,args):
     #gets the info of the first file it comes accros and puts it into the variables of the torrent
     #it sets foundfile to "true" if there was something to find and "false" if there was nothing to find
+    #it also sets relative_filepath to allow keeping the structure of files relative to the parsed folder
     if not len(args) == 1:
         print("Error: need a path as an argument for populate_next_file_info (%path%)")
         exit(-1)
     for root,dirs,files in os.walk(args[0]):
         if len(files) > 0:
             torrent["foundfile"] = "true"
+            torrent["relative_filepath"] = os.path.relpath( os.path.join(root,files[0]),args[0] )
             return step_get_file_info(defaults,group,feed,torrent,[os.path.join(root,files[0])] )
 
     # for loop found no file so there is nothing left - lets do cleanup
     torrent["foundfile"] = "false"
     del torrent["absolute_filepath"]
     del torrent["absolute_folderpath"]
+    del torrent["relative_filepath"]
     del torrent["filename"]
     del torrent["basename"]
     del torrent["extension"]
