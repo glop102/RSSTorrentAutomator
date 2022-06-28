@@ -721,6 +721,12 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
     if "title" in torrent:
         print("Expanding new torrent : "+torrent["title"])
 
+    # copy the group_name in to the torrent so we can remove the parrent feed without the torrent breaking
+    try:
+        group_name = get_variable_value_cascaded(defaults,group,feed,torrent,"group_name",false)
+        torrent["group_name"] = group_name
+    except KeyError: pass
+
     #we do not check if it already exists because we assume this is a new torrent
     torrent["current_processing_step"] = "processing_steps 0"
 
