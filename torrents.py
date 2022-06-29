@@ -726,7 +726,7 @@ def expand_new_torrent_object(defaults,group,feed,torrent):
 
     # copy the group_name in to the torrent so we can remove the parrent feed without the torrent breaking
     try:
-        group_name = get_variable_value_cascaded(defaults,group,feed,torrent,"group_name",false)
+        group_name = get_variable_value_cascaded(defaults,group,feed,torrent,"group_name",False)
         torrent["group_name"] = group_name
     except KeyError: pass
 
