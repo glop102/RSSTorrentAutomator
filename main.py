@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import signal
+import argparse
 from settings import parse_settings_file, settings_final_sanity_check, save_settings_to_file
 from settings import parse_torrents_status_file, save_torrents_to_file
 from feeds import check_for_new_links,check_if_feed_marked_for_deletion
@@ -106,6 +107,11 @@ def update_torrents(defaults,groups,feeds,torrents):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        prog="RSS Feed Automator"
+        )
+    parser.add_argument("-1","--singlerun", action="store_true")
+    args = parser.parse_args()
     try:
         defaults,groups,feeds,torrents = parse_configurations()
 
@@ -136,10 +142,16 @@ def main():
                 #optimization - do not bother waking up and checking torrents if we have none
                 torrent_delay_counter = feed_delay_counter
 
+            #If the user opted to only have this run a single time, lets exit before the long delay
+            if(args.singlerun): 
+                print("Exiting after a single iteration - user opt-in")
+                break
+
             sleep_amount = min ( feed_delay_counter , torrent_delay_counter )
             feed_delay_counter = feed_delay_counter - sleep_amount
             torrent_delay_counter = torrent_delay_counter - sleep_amount
             main_loop_conditional.wait( sleep_amount )
+
 
     except KeyboardInterrupt:
         print("Caught Keyboard Interupt")
