@@ -5,7 +5,11 @@ def check_for_new_links(feed):
     """Given the normal feed object, return a list of new feed entries. Ordered oldest to newest."""
     #read the feed
     feed_url = feed["feed_url"]
-    feed_data = feedparser.parse(feed_url)
+    try:
+        feed_data = feedparser.parse(feed_url)
+    except http.client.RemoteDisconnected:
+        print("HTTP Error, service seems to be busy/down")
+        return []
 
     #parse out entries in the feed for the information we want
     entries = []
