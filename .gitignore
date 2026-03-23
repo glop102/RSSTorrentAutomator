@@ -3,3 +3,4 @@ __pycache__
 current_torrents.conf
 queued_downloads.conf
 custom
+result
