@@ -15,6 +15,9 @@ final: prev: {
           "__pycache__"
           "custom"
           "examples"
+          "flake.nix"
+          "flake.lock"
+          "overlay.nix"
         ]);
     };
 
