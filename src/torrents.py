@@ -81,7 +81,7 @@ def __get_torrent_files_abs_paths(defaults,infohash,filename_glob=""):
     paths = server.f.multicall(
         infohash,
         filename_glob,
-        [ "f.frozen_path=" ]
+        "f.frozen_path="
     )
     return [path[0] for path in paths]
 def __get_torrent_files_relative_paths(defaults,infohash,filename_glob=""):
@@ -90,7 +90,7 @@ def __get_torrent_files_relative_paths(defaults,infohash,filename_glob=""):
     paths = server.f.multicall(
         infohash,
         filename_glob,
-        [ "f.path=" ]
+        "f.path="
     )
     return [path[0] for path in paths]
 def __delete_torrent_only(defaults,infohash):
