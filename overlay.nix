@@ -4,7 +4,7 @@ final: prev: {
     version = "1.0";
 
     src = final.lib.cleanSourceWith {
-      src = ./.;
+      src = ./src;
       filter =
         path: type:
         let
@@ -13,28 +13,25 @@ final: prev: {
         !(builtins.elem baseName [
           "venv"
           "__pycache__"
-          "custom"
-          "examples"
-          "flake.nix"
-          "flake.lock"
-          "overlay.nix"
         ]);
     };
 
     format = "other";
 
-    propagatedBuildInputs = with final.python3Packages; [
+    dependencies = with final.python3Packages; [
       feedparser
       paramiko
+      regex
     ];
+
+    makeWrapperArgs = [ "--prefix PYTHONPATH : $out/lib/rss-torrent-automator" ];
 
     installPhase = ''
       mkdir -p $out/lib/rss-torrent-automator $out/bin
-      cp main.py feeds.py torrents.py downloads.py settings.py variables.py \
+      cp feeds.py torrents.py downloads.py settings.py variables.py \
         $out/lib/rss-torrent-automator/
-      makeWrapper ${final.python3}/bin/python3 $out/bin/rss-torrent-automator \
-        --add-flags "$out/lib/rss-torrent-automator/main.py" \
-        --set PYTHONPATH "$out/lib/rss-torrent-automator"
+      cp main.py $out/bin/rss-torrent-automator
+      chmod +x $out/bin/rss-torrent-automator
     '';
 
     meta = {

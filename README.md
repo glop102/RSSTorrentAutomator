@@ -27,11 +27,43 @@ python3.4+
 
 ## Basic Setup
 
-* Install the dependencies for your system
 * clone this repo
-* make your rss_feed.conf
-* run the python script main.py
-* (optional) add the script to a systemd service file
+* make your rss_feed.conf (see configuration section below)
+* run the program (see below for options)
+
+### Running with Nix
+
+The recommended way to run this is via the provided Nix flake, which handles all dependencies automatically.
+
+```sh
+# Run directly without installing
+nix run github:glop102/RSSTorrentAutomator
+
+# Or from a local clone
+nix run .
+```
+
+To use the overlay in your own NixOS configuration or home-manager setup, add this flake as an input and apply `overlays.default`.
+
+### Running with a venv on Linux
+
+```sh
+# Clone the repo and enter it
+git clone https://github.com/glop102/RSSTorrentAutomator
+cd RSSTorrentAutomator
+
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install feedparser paramiko regex
+
+# Run the program
+python3 src/main.py
+```
+
+Deactivate the venv with `deactivate` when done. You can re-enter it later with `source venv/bin/activate`.
 
 
 ### Most Basic rss_feed.conf
